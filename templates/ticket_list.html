@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Tickets - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-list me-2"></i>Support Tickets</h2>
+                {% if current_user.role in ['user', 'admin'] %}
+                <a href="{{ url_for('create_ticket') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Ticket
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Statuses</option>
+                                <option value="OPEN" {% if request.args.get('status') == 'OPEN' %}selected{% endif %}>Open</option>
+                                <option value="IN_PROGRESS" {% if request.args.get('status') == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                                <option value="RESOLVED" {% if request.args.get('status') == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+                                <option value="CLOSED" {% if request.args.get('status') == 'CLOSED' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Priority</label>
+                            <select name="priority" class="form-select">
+                                <option value="">All Priorities</option>
+                                <option value="URGENT" {% if request.args.get('priority') == 'URGENT' %}selected{% endif %}>Urgent</option>
+                                <option value="HIGH" {% if request.args.get('priority') == 'HIGH' %}selected{% endif %}>High</option>
+                                <option value="MEDIUM" {% if request.args.get('priority') == 'MEDIUM' %}selected{% endif %}>Medium</option>
+                                <option value="LOW" {% if request.args.get('priority') == 'LOW' %}selected{% endif %}>Low</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Filter
+                            </button>
+                            <a href="{{ url_for('list_tickets') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Clear
+                            </a>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <span class="text-muted">
+                                Total: {{ tickets.total }} tickets
+                            </span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tickets Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if tickets.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Creator</th>
+                                    {% if current_user.role in ['tech', 'admin'] %}
+                                    <th>Department</th>
+                                    {% endif %}
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Assigned To</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets.items %}
+                                <tr class="{% if ticket.priority == 'URGENT' %}table-danger{% endif %}">
+                                    <td><strong>#{{ ticket.id }}</strong></td>
+                                    <td>
+                                        <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" 
+                                           class="text-decoration-none fw-bold">
+                                            {{ ticket.title[:50] }}{% if ticket.title|length > 50 %}...{% endif %}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ ticket.category }}</small>
+                                    </td>
+                                    <td>
+                                        {{ ticket.creator.full_name }}<br>
+                                        <small class="text-muted">{{ ticket.creator.email }}</small>
+                                    </td>
+                                    {% if current_user.role in ['tech', 'admin'] %}
+                                    <td>
+                                        {% if ticket.creator.department %}
+                                        {{ ticket.creator.department.code }}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    <td>
+                                        <span class="badge bg-{{ ticket.priority_color }}">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.status_color }}">
+                                            {{ ticket.status.replace('_', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if ticket.assignee %}
+                                        {{ ticket.assignee.full_name }}
+                                        {% else %}
+                                        <span class="text-muted">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ ticket.created_at.strftime('%m/%d/%Y') }}<br>
+                                        <small class="text-muted">{{ ticket.created_at.strftime('%H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if ticket.updated_at != ticket.created_at %}
+                                        {{ ticket.updated_at.strftime('%m/%d/%Y') }}<br>
+                                        <small class="text-muted">{{ ticket.updated_at.strftime('%H:%M') }}</small>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if current_user.role in ['tech', 'admin'] and not ticket.assigned_to_id %}
+                                            <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" 
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-hand-paper"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if tickets.pages > 1 %}
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            Showing {{ tickets.per_page * (tickets.page - 1) + 1 }} to 
+                            {{ tickets.per_page * (tickets.page - 1) + tickets.items|length }} 
+                            of {{ tickets.total }} entries
+                        </div>
+                        <nav>
+                            <ul class="pagination mb-0">
+                                {% if tickets.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('list_tickets', page=tickets.prev_num, **request.args) }}">
+                                        Previous
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for page_num in tickets.iter_pages() %}
+                                {% if page_num %}
+                                {% if page_num != tickets.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('list_tickets', page=page_num, **request.args) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+                                
+                                {% if tickets.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('list_tickets', page=tickets.next_num, **request.args) }}">
+                                        Next
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No tickets found</h5>
+                        <p class="text-muted">
+                            {% if request.args.get('status') or request.args.get('priority') %}
+                            Try adjusting your filters or <a href="{{ url_for('list_tickets') }}">view all tickets</a>.
+                            {% else %}
+                            {% if current_user.role in ['user', 'admin'] %}
+                            <a href="{{ url_for('create_ticket') }}" class="btn btn-primary mt-3">
+                                <i class="fas fa-plus me-2"></i>Create your first ticket
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

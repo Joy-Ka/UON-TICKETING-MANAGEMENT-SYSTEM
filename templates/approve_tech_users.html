@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Approve Technical Staff - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="fas fa-user-check me-2"></i>Approve Technical Staff</h2>
+            <p class="text-muted">Review and approve pending technical staff registrations</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            {% if pending_users %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Position</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in pending_users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.full_name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.phone or 'N/A' }}</td>
+                            <td>{{ user.position or 'N/A' }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('approve_tech_user', user_id=user.id) }}" style="display:inline-block;">
+                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve this technical staff member?');">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('reject_tech_user', user_id=user.id) }}" style="display:inline-block;">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this technical staff member?');">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle me-2"></i>No pending technical staff registrations.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

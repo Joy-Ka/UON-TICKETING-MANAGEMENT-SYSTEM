@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <h1 class="display-4 fw-bold text-primary mb-4">
+                        ICT Support Ticketing System
+                    </h1>
+                    <p class="lead mb-4">
+                        Streamline your IT support requests with our comprehensive ticketing system. 
+                        Submit tickets, track progress, and get the technical support you need.
+                    </p>
+                    <div class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-ticket-alt text-primary fs-4 mb-2"></i>
+                                    <h5>Easy Ticket Creation</h5>
+                                    <p class="small text-muted">Submit support requests quickly with our intuitive interface</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-bell text-primary fs-4 mb-2"></i>
+                                    <h5>Real-time Notifications</h5>
+                                    <p class="small text-muted">Stay updated with email and system notifications</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-users text-primary fs-4 mb-2"></i>
+                                    <h5>Multi-role Support</h5>
+                                    <p class="small text-muted">Designed for users, technicians, and administrators</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-chart-line text-primary fs-4 mb-2"></i>
+                                    <h5>Comprehensive Reports</h5>
+                                    <p class="small text-muted">Track performance with detailed analytics</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Access System
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image text-center">
+                    <img src="https://pixabay.com/get/g0c0f2804204c2265ee31569fe8c9c0e9a2c2caa0b7a73052f0da5b1f76184ccbc9cfe3f193e8688588939690c681cd91a8e812e1fae8feb48e14c6a2cbb41c8d_1280.jpg" 
+                         alt="Office Workers" class="img-fluid rounded shadow-lg">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h2 class="mb-4">Supported Departments</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-graduation-cap text-primary fs-1 mb-3"></i>
+                            <h5>Student Management Unit</h5>
+                            <p class="text-muted">SMU</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-hands-helping text-primary fs-1 mb-3"></i>
+                            <h5>Student Welfare Affairs</h5>
+                            <p class="text-muted">SWA</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-heartbeat text-primary fs-1 mb-3"></i>
+                            <h5>University Health Services</h5>
+                            <p class="text-muted">UHS</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-comments text-primary fs-1 mb-3"></i>
+                            <h5>Communication & Customer Unit</h5>
+                            <p class="text-muted">CCU</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-globe-asia text-primary fs-1 mb-3"></i>
+                            <h5>Confucius Institute</h5>
+                            <p class="text-muted">CONFUCIUS</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

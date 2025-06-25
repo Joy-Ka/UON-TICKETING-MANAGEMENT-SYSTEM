@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bell me-2"></i>Notifications</h2>
+                <button class="btn btn-outline-secondary" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double me-2"></i>Mark All as Read
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if notifications %}
+                    <div class="list-group list-group-flush">
+                        {% for notification in notifications %}
+                        <div class="list-group-item {% if not notification.is_read %}list-group-item-light border-start border-primary border-3{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 {% if not notification.is_read %}fw-bold{% endif %}">
+                                        <i class="fas fa-{% if notification.notification_type == 'EMAIL' %}envelope{% elif notification.notification_type == 'SMS' %}sms{% else %}bell{% endif %} me-2 text-primary"></i>
+                                        {{ notification.title }}
+                                        {% if not notification.is_read %}
+                                        <span class="badge bg-primary ms-2">New</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="mb-1 text-muted">{{ notification.message }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ notification.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                        {% if notification.ticket_id %}
+                                        • <a href="{{ url_for('view_ticket', ticket_id=notification.ticket_id) }}" class="text-decoration-none">
+                                            View Ticket #{{ notification.ticket_id }}
+                                        </a>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="ms-3">
+                                    {% if not notification.is_read %}
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="markAsRead({{ notification.id }})">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bell-slash fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No notifications</h5>
+                        <p class="text-muted">You're all caught up! New notifications will appear here.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function markAsRead(notificationId) {
+    fetch(`/api/notifications/mark_read/${notificationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    // This would require a server endpoint to mark all notifications as read
+    alert('Mark all as read functionality would be implemented with a server endpoint');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-crown me-2"></i>Administrator Dashboard</h2>
+                    <p class="text-muted">System overview and management</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('create_ticket') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-plus me-1"></i>New Ticket
+                    </a>
+                    <a href="{{ url_for('create_user') }}" class="btn btn-success">
+                        <i class="fas fa-user-plus me-1"></i>Add User
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card dashboard-card-total h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-ticket-alt fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.total }}</h3>
+                    <p class="mb-0">Total Tickets</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card dashboard-card-open h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.open }}</h3>
+                    <p class="mb-0">Open</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card dashboard-card-inprogress h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-cog fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.in_progress }}</h3>
+                    <p class="mb-0">In Progress</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card dashboard-card-resolved h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-check fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.resolved }}</h3>
+                    <p class="mb-0">Resolved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card dashboard-card-closed h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-archive fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.closed }}</h3>
+                    <p class="mb-0">Closed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="card dashboard-card-urgent h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-fire fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.urgent }}</h3>
+                    <p class="mb-0">Urgent</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Recent Tickets -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Tickets</h5>
+                    <a href="{{ url_for('list_tickets') }}" class="btn btn-outline-primary btn-sm">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_tickets %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Creator</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Assigned To</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in recent_tickets %}
+                                <tr>
+                                    <td><strong>#{{ ticket.id }}</strong></td>
+                                    <td>
+                                        <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" class="text-decoration-none">
+                                            {{ ticket.title[:30] }}{% if ticket.title|length > 30 %}...{% endif %}
+                                        </a>
+                                    </td>
+                                    <td>{{ ticket.creator.full_name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.priority_color }}">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.status_color }}">
+                                            {{ ticket.status.replace('_', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if ticket.assignee %}
+                                            {{ ticket.assignee.full_name }}
+                                        {% else %}
+                                            <span class="text-muted">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ticket.created_at.strftime('%m/%d %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-ticket-alt fs-2 text-muted mb-3"></i>
+                        <h5 class="text-muted">No tickets found</h5>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('create_user') }}" class="btn btn-outline-success">
+                            <i class="fas fa-user-plus me-2"></i>Add New User
+                        </a>
+                        <a href="{{ url_for('list_users') }}" class="btn btn-outline-info">
+                            <i class="fas fa-users me-2"></i>Manage Users
+                        </a>
+                        <a href="{{ url_for('reports') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-bar me-2"></i>View Reports
+                        </a>
+                        <a href="{{ url_for('list_tickets', status='URGENT') }}" class="btn btn-outline-danger">
+                            <i class="fas fa-fire me-2"></i>Urgent Tickets
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Stats -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>System Info</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ User.query.count() }}</h4>
+                            <small class="text-muted">Total Users</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ User.query.filter_by(role='tech').count() }}</h4>
+                            <small class="text-muted">Tech Staff</small>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <a href="{{ url_for('list_users') }}" class="btn btn-outline-info btn-sm w-100">
+                                <i class="fas fa-users me-1"></i>Manage Users
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('approve_tech_users') }}" class="btn btn-outline-warning btn-sm w-100">
+                                <i class="fas fa-user-check me-1"></i>Approve Tech
+                                {% set pending_count = User.query.filter_by(role='tech', is_active=False).count() %}
+                                {% if pending_count > 0 %}
+                                <span class="badge bg-warning text-dark ms-1">{{ pending_count }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

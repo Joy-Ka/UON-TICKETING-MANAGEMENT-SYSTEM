@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Access Forbidden - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="error-page py-5">
+                <i class="fas fa-ban text-danger" style="font-size: 6rem; margin-bottom: 2rem;"></i>
+                <h1 class="display-4 text-danger mb-3">403</h1>
+                <h2 class="mb-3">Access Forbidden</h2>
+                <p class="lead text-muted mb-4">
+                    You don't have permission to access this resource. 
+                    Please contact your administrator if you believe this is an error.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Go to Dashboard
+                    </a>
+                    <button onclick="history.back()" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Go Back
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

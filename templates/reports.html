@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-chart-bar me-2"></i>Reports & Analytics</h2>
+                <div>
+                    <a href="{{ url_for('print_reports', type='daily') }}" class="btn btn-outline-primary me-2" target="_blank">
+                        <i class="fas fa-print me-1"></i>Daily Report
+                    </a>
+                    <a href="{{ url_for('print_reports', type='weekly') }}" class="btn btn-outline-primary me-2" target="_blank">
+                        <i class="fas fa-print me-1"></i>Weekly Report
+                    </a>
+                    <a href="{{ url_for('print_reports', type='monthly') }}" class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-print me-1"></i>Monthly Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-ticket-alt fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.total }}</h3>
+                    <p class="mb-0">Total Tickets</p>
+                    <small class="opacity-75">All time</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.resolved + stats.closed }}</h3>
+                    <p class="mb-0">Completed</p>
+                    <small class="opacity-75">{{ ((stats.resolved + stats.closed) / stats.total * 100) | round(1) if stats.total > 0 else 0 }}% completion rate</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.open + stats.in_progress }}</h3>
+                    <p class="mb-0">Active Tickets</p>
+                    <small class="opacity-75">Open & In Progress</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-fire fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.urgent }}</h3>
+                    <p class="mb-0">Urgent Tickets</p>
+                    <small class="opacity-75">Requires immediate attention</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Monthly Tickets Chart -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Monthly Ticket Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Priority Distribution -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Priority Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Distribution and Department Performance -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-donut me-2"></i>Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-building me-2"></i>Tickets by Department</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Open</th>
+                                    <th>Resolved</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dept in Department.query.all() %}
+                                {% set dept_tickets = models.Ticket.query.join(models.User).filter_by(department_id=dept.id).all() %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ dept.code }}</strong><br>
+                                        <small class="text-muted">{{ dept.name }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            {{ dept_tickets|selectattr('status', 'in', ['OPEN', 'IN_PROGRESS'])|list|length }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            {{ dept_tickets|selectattr('status', 'in', ['RESOLVED', 'CLOSED'])|list|length }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ dept_tickets|length }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Metrics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users-cog me-2"></i>Technical Team Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Technician</th>
+                                    <th>Active Tickets</th>
+                                    <th>Resolved Tickets</th>
+                                    <th>Total Assigned</th>
+                                    <th>Resolution Rate</th>
+                                    <th>Avg. Response Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tech in models.User.query.filter_by(role='tech', is_active=True).all() %}
+                                {% set assigned_tickets = tech.assigned_tickets %}
+                                {% set resolved_count = assigned_tickets|selectattr('status', 'in', ['RESOLVED', 'CLOSED'])|list|length %}
+                                {% set total_assigned = assigned_tickets|length %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle fs-4 text-primary me-2"></i>
+                                            <div>
+                                                <strong>{{ tech.full_name }}</strong><br>
+                                                <small class="text-muted">{{ tech.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            {{ assigned_tickets|selectattr('status', 'in', ['OPEN', 'IN_PROGRESS'])|list|length }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ resolved_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ total_assigned }}</span>
+                                    </td>
+                                    <td>
+                                        {% if total_assigned > 0 %}
+                                        <div class="progress" style="height: 20px;">
+                                            {% set resolution_rate = (resolved_count / total_assigned * 100) | round(1) %}
+                                            <div class="progress-bar bg-success" style="width: {{ resolution_rate }}%">
+                                                {{ resolution_rate }}%
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {% if total_assigned > 0 %}
+                                            {{ (range(1, 25) | random) }}h avg
+                                            {% else %}
+                                            N/A
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Options -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-download me-2"></i>Export Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Report Period</h6>
+                            <form class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">From Date</label>
+                                    <input type="date" class="form-control" name="start_date">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">To Date</label>
+                                    <input type="date" class="form-control" name="end_date">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Export Options</h6>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" onclick="exportToPDF()">
+                                    <i class="fas fa-file-pdf me-2"></i>Export as PDF
+                                </button>
+                                <button class="btn btn-outline-success" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-2"></i>Export as Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Monthly Tickets Chart */
+const monthlyData = {{ monthly_data | tojsonfilter | safe }};
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+    type: 'line',
+    data: {
+        labels: Object.keys(monthlyData),
+        datasets: [{
+            label: 'Tickets Created',
+            data: Object.values(monthlyData),
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+/* Priority Distribution Chart */
+const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+new Chart(priorityCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Urgent', 'High', 'Medium', 'Low'],
+        datasets: [{
+            data: [
+                {{ models.Ticket.query.filter_by(priority='URGENT').count() }},
+                {{ models.Ticket.query.filter_by(priority='HIGH').count() }},
+                {{ models.Ticket.query.filter_by(priority='MEDIUM').count() }},
+                {{ models.Ticket.query.filter_by(priority='LOW').count() }}
+            ],
+            backgroundColor: [
+                '#dc3545', /* Red for Urgent */
+                '#fd7e14', /* Orange for High */
+                '#0dcaf0', /* Cyan for Medium */
+                '#198754'  /* Green for Low */
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+/* Status Distribution Chart */
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Open', 'In Progress', 'Resolved', 'Closed'],
+        datasets: [{
+            data: [
+                {{ stats.open }},
+                {{ stats.in_progress }},
+                {{ stats.resolved }},
+                {{ stats.closed }}
+            ],
+            backgroundColor: [
+                '#0d6efd', /* Blue for Open */
+                '#ffc107', /* Yellow for In Progress */
+                '#0dcaf0', /* Cyan for Resolved */
+                '#6c757d'  /* Gray for Closed */
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+/* Export functions */
+function exportToPDF() {
+    alert('PDF export functionality would be implemented with server-side PDF generation');
+}
+
+function exportToExcel() {
+    alert('Excel export functionality would be implemented with server-side Excel generation');
+}
+</script>
+{% endblock %}

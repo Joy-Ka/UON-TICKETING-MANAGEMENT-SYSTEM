@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-tachometer-alt me-2"></i>My Dashboard</h2>
+                <a href="{{ url_for('create_ticket') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Ticket
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card dashboard-card-total h-100 text-white rounded-3 p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h3 class="mb-0">{{ my_tickets|length }}</h3>
+                            <p class="mb-0">Total Tickets</p>
+                        </div>
+                        <i class="fas fa-ticket-alt fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card dashboard-card-open h-100 text-white rounded-3 p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h3 class="mb-0">{{ my_tickets|selectattr('status', 'equalto', 'OPEN')|list|length }}</h3>
+                            <p class="mb-0">Open Tickets</p>
+                        </div>
+                        <i class="fas fa-exclamation fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card dashboard-card-inprogress h-100 text-white rounded-3 p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h3 class="mb-0">{{ my_tickets|selectattr('status', 'equalto', 'IN_PROGRESS')|list|length }}</h3>
+                            <p class="mb-0">In Progress</p>
+                        </div>
+                        <i class="fas fa-cog fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card dashboard-card-closed h-100 text-white rounded-3 p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h3 class="mb-0">{{ my_tickets|selectattr('status', 'equalto', 'CLOSED')|list|length }}</h3>
+                            <p class="mb-0">Closed Tickets</p>
+                        </div>
+                        <i class="fas fa-check fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- My Tickets -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>My Recent Tickets</h5>
+                    <a href="{{ url_for('list_tickets') }}" class="btn btn-outline-primary btn-sm">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if my_tickets %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in my_tickets[:10] %}
+                                <tr>
+                                    <td><strong>#{{ ticket.id }}</strong></td>
+                                    <td>
+                                        <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" class="text-decoration-none">
+                                            {{ ticket.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.priority_color }}">
+                                            {{ ticket.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ ticket.status_color }}">
+                                            {{ ticket.status.replace('_', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.created_at.strftime('%m/%d/%Y %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-ticket-alt fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No tickets created yet</h5>
+                        <p class="text-muted">Create your first support ticket to get started</p>
+                        <a href="{{ url_for('create_ticket') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Ticket
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

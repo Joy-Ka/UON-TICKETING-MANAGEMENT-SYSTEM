@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Technical Dashboard - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="fas fa-tools me-2"></i>Technical Dashboard</h2>
+            <p class="text-muted">Monitor and manage support tickets</p>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="card dashboard-card-total h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-ticket-alt fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.total }}</h3>
+                    <p class="mb-0">Total Tickets</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="card dashboard-card-open h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.open }}</h3>
+                    <p class="mb-0">Open</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="card dashboard-card-inprogress h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-cog fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.in_progress }}</h3>
+                    <p class="mb-0">In Progress</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="card dashboard-card-resolved h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-check fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.resolved }}</h3>
+                    <p class="mb-0">Resolved</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="card dashboard-card-closed h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-archive fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.closed }}</h3>
+                    <p class="mb-0">Closed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <div class="card dashboard-card-urgent h-100 text-white rounded-3 p-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-fire fs-2 mb-2"></i>
+                    <h3 class="mb-0">{{ stats.urgent }}</h3>
+                    <p class="mb-0">Urgent</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Unassigned Tickets -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Unassigned Tickets</h5>
+                </div>
+                <div class="card-body">
+                    {% if unassigned_tickets %}
+                    {% for ticket in unassigned_tickets[:5] %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" class="text-decoration-none">
+                                    #{{ ticket.id }} - {{ ticket.title[:50] }}...
+                                </a>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>{{ ticket.creator.full_name }}
+                                <i class="fas fa-clock ms-2 me-1"></i>{{ ticket.created_at.strftime('%m/%d %H:%M') }}
+                            </small>
+                        </div>
+                        <div class="ms-3">
+                            <span class="badge bg-{{ ticket.priority_color }} me-2">{{ ticket.priority }}</span>
+                            <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" 
+                               class="btn btn-sm btn-primary">Take</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if unassigned_tickets|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('list_tickets', status='OPEN') }}" class="btn btn-outline-primary">
+                            View All ({{ unassigned_tickets|length }})
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-check-circle fs-2 text-success mb-2"></i>
+                        <p class="text-muted mb-0">No unassigned tickets</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- My Assigned Tickets -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-check me-2"></i>My Assigned Tickets</h5>
+                </div>
+                <div class="card-body">
+                    {% if my_tickets %}
+                    {% for ticket in my_tickets[:5] %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" class="text-decoration-none">
+                                    #{{ ticket.id }} - {{ ticket.title[:50] }}...
+                                </a>
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>{{ ticket.creator.full_name }}
+                                <i class="fas fa-clock ms-2 me-1"></i>{{ ticket.created_at.strftime('%m/%d %H:%M') }}
+                            </small>
+                        </div>
+                        <div class="ms-3">
+                            <span class="badge bg-{{ ticket.priority_color }} me-2">{{ ticket.priority }}</span>
+                            <span class="badge bg-{{ ticket.status_color }}">{{ ticket.status.replace('_', ' ') }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if my_tickets|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('list_tickets') }}" class="btn btn-outline-info">
+                            View All ({{ my_tickets|length }})
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-inbox fs-2 text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No assigned tickets</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

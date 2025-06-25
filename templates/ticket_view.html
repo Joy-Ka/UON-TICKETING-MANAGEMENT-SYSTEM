@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}Ticket #{{ ticket.id }} - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Ticket Content -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4 class="mb-1">
+                                <i class="fas fa-ticket-alt me-2"></i>
+                                Ticket #{{ ticket.id }}: {{ ticket.title }}
+                            </h4>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <span class="badge bg-{{ ticket.priority_color }} fs-6">
+                                    <i class="fas fa-flag me-1"></i>{{ ticket.priority }}
+                                </span>
+                                <span class="badge bg-{{ ticket.status_color }} fs-6">
+                                    <i class="fas fa-info-circle me-1"></i>{{ ticket.status.replace('_', ' ') }}
+                                </span>
+                                <span class="badge bg-secondary fs-6">
+                                    <i class="fas fa-tag me-1"></i>{{ ticket.category }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">
+                                Created: {{ ticket.created_at.strftime('%B %d, %Y at %I:%M %p') }}<br>
+                                {% if ticket.updated_at != ticket.created_at %}
+                                Updated: {{ ticket.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Description:</h6>
+                        <div class="bg-light p-3 rounded">
+                            {{ ticket.description|nl2br }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Created by:</h6>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-user-circle fs-4 text-primary me-2"></i>
+                                <div>
+                                    <strong>{{ ticket.creator.full_name }}</strong><br>
+                                    <small class="text-muted">
+                                        {{ ticket.creator.email }}
+                                        {% if ticket.creator.department %}
+                                        • {{ ticket.creator.department.name }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Assigned to:</h6>
+                            {% if ticket.assignee %}
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-user-check fs-4 text-success me-2"></i>
+                                <div>
+                                    <strong>{{ ticket.assignee.full_name }}</strong><br>
+                                    <small class="text-muted">{{ ticket.assignee.email }}</small>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-muted">
+                                <i class="fas fa-user-slash me-2"></i>Not assigned
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comments Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Comments ({{ comments|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if comments %}
+                    {% for comment in comments %}
+                    <div class="d-flex mb-3 {% if comment.is_internal %}bg-light{% endif %} p-3 rounded">
+                        <div class="flex-shrink-0 me-3">
+                            <i class="fas fa-user-circle fs-3 text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">
+                                    {{ comment.user.full_name }}
+                                    {% if comment.is_internal %}
+                                    <span class="badge bg-warning ms-2">Internal Note</span>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">
+                                    {{ comment.created_at.strftime('%m/%d/%Y %I:%M %p') }}
+                                </small>
+                            </div>
+                            <div>{{ comment.comment|nl2br }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted text-center py-3">No comments yet</p>
+                    {% endif %}
+                    
+                    <!-- Add Comment Form -->
+                    {% if current_user.role in ['tech', 'admin'] or ticket.created_by_id == current_user.id %}
+                    <hr>
+                    <form method="POST" action="{{ url_for('add_comment', ticket_id=ticket.id) }}">
+                        {{ comment_form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ comment_form.comment.label(class="form-label") }}
+                            {{ comment_form.comment(class="form-control", rows="3") }}
+                        </div>
+                        {% if current_user.role in ['tech', 'admin'] %}
+                        <div class="mb-3 form-check">
+                            {{ comment_form.is_internal(class="form-check-input") }}
+                            {{ comment_form.is_internal.label(class="form-check-label") }}
+                            <div class="form-text">Internal notes are only visible to technical staff</div>
+                        </div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Add Comment
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            {% if current_user.role in ['tech', 'admin'] %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    {% if not ticket.assigned_to_id %}
+                    <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" class="btn btn-success btn-sm w-100 mb-2">
+                        <i class="fas fa-hand-paper me-2"></i>Take This Ticket
+                    </a>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal">
+                            <i class="fas fa-edit me-2"></i>Update Status
+                        </button>
+                        
+                        {% if current_user.role == 'admin' or (ticket.assigned_to_id and ticket.assigned_to_id != current_user.id) %}
+                        <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#assignModal">
+                            <i class="fas fa-user-tag me-2"></i>Reassign Ticket
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Ticket Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Timeline</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Ticket Created</h6>
+                                <small class="text-muted">
+                                    {{ ticket.created_at.strftime('%B %d, %Y at %I:%M %p') }}<br>
+                                    by {{ ticket.creator.full_name }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {% if ticket.assigned_to_id %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Assigned</h6>
+                                <small class="text-muted">
+                                    to {{ ticket.assignee.full_name }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if ticket.resolved_at %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Resolved</h6>
+                                <small class="text-muted">
+                                    {{ ticket.resolved_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if ticket.closed_at %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Closed</h6>
+                                <small class="text-muted">
+                                    {{ ticket.closed_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Attachments Section -->
+    {% if ticket.attachments %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Attachments</h5>
+                </div>
+                <div class="card-body">
+                    {% for attachment in ticket.attachments %}
+                    <div class="attachment-item">
+                        <div>
+                            <i class="fas fa-file me-2"></i>
+                            <strong>{{ attachment.original_filename }}</strong>
+                            <small class="text-muted">
+                                ({{ (attachment.file_size / 1024) | round(1) }} KB) 
+                                - Uploaded by {{ attachment.uploaded_by.full_name }}
+                                on {{ attachment.created_at.strftime('%m/%d/%Y at %H:%M') }}
+                            </small>
+                        </div>
+                        {% if current_user.role in ['admin', 'tech'] or ticket.created_by_id == current_user.id %}
+                        <a href="{{ url_for('download_attachment', attachment_id=attachment.id) }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-download me-1"></i>Download
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Close Ticket Button for Department Users -->
+    {% if current_user.id == ticket.created_by_id and ticket.status not in ['CLOSED'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-times-circle me-2"></i>Close Ticket</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Are you satisfied with the resolution? You can close this ticket when your issue is resolved.</p>
+                    <form method="POST" action="{{ url_for('close_ticket', ticket_id=ticket.id) }}" 
+                          onsubmit="return confirm('Are you sure you want to close this ticket? This action cannot be undone.')">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-times-circle me-2"></i>Close Ticket
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Status Update Modal -->
+{% if current_user.role in ['tech', 'admin'] %}
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Ticket Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('update_ticket_status', ticket_id=ticket.id) }}">
+                {{ status_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ status_form.status.label(class="form-label") }}
+                        {{ status_form.status(class="form-select") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Ticket Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('assign_ticket', ticket_id=ticket.id) }}">
+                {{ assign_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ assign_form.assigned_to_id.label(class="form-label") }}
+                        {{ assign_form.assigned_to_id(class="form-select") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh comments every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}
