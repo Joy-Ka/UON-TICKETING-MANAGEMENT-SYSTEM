@@ -6,6 +6,7 @@ from app import mail, db
 from models import Notification, User
 import logging
 
+
 def send_email_notification(to_email, subject, body, html_body=None):
     """Send email notification"""
     try:
@@ -22,8 +23,41 @@ def send_email_notification(to_email, subject, body, html_body=None):
         logging.error(f"Failed to send email to {to_email}: {str(e)}")
         return False
 
+import africastalking
+
+def send_sms_notification(to_phone, message):
+    """Send SMS notification using Africa's Talking API"""
+    try:
+        username = current_app.config.get('AFRICASTALKING_USERNAME')
+        api_key = current_app.config.get('AFRICASTALKING_API_KEY')
+        if not all([username, api_key]):
+            logging.error("Africa's Talking configuration is missing")
+            return False
+        africastalking.initialize(username, api_key)
+        sms = africastalking.SMS
+
+        # Sanitize phone number: remove spaces and format to international if missing country code
+        to_phone = to_phone.replace(" ", "")
+        if to_phone.startswith('0'):
+            to_phone = '+254' + to_phone[1:]
+
+        response = sms.send(message, [to_phone])
+        if response and response['SMSMessageData']['Recipients']:
+            for recipient in response['SMSMessageData']['Recipients']:
+                if recipient['status'] == 'Success':
+                    logging.info(f"SMS sent successfully to {recipient['number']}")
+                else:
+                    logging.error(f"Failed to send SMS to {recipient['number']}: {recipient['status']}")
+            return True
+        else:
+            logging.error("Failed to send SMS: No recipients in response")
+            return False
+    except Exception as e:
+        logging.error(f"Exception during SMS sending to {to_phone}: {str(e)}")
+        return False
+
 def create_notification(user_id, title, message, ticket_id=None, notification_type='SYSTEM'):
-    """Create a system notification"""
+    """Create a notification and send email or SMS if applicable"""
     notification = Notification(
         user_id=user_id,
         ticket_id=ticket_id,
@@ -33,6 +67,19 @@ def create_notification(user_id, title, message, ticket_id=None, notification_ty
     )
     db.session.add(notification)
     db.session.commit()
+
+    # Send email or SMS based on notification_type
+    user = User.query.get(user_id)
+    if notification_type == 'EMAIL' and user and user.email:
+        subject = title
+        send_email_notification(user.email, subject, message)
+        notification.sent_at = datetime.utcnow()
+        db.session.commit()
+    elif notification_type == 'SMS' and user and user.phone:
+        send_sms_notification(user.phone, message)
+        notification.sent_at = datetime.utcnow()
+        db.session.commit()
+
     return notification
 
 def notify_tech_team(ticket):
@@ -45,7 +92,8 @@ def notify_tech_team(ticket):
             user_id=user.id,
             title=f"New Ticket: {ticket.title}",
             message=f"A new {ticket.priority} priority ticket has been created by {ticket.creator.full_name}",
-            ticket_id=ticket.id
+            ticket_id=ticket.id,
+            notification_type='SYSTEM'
         )
         
         # Send email notification
@@ -65,7 +113,24 @@ def notify_tech_team(ticket):
             
             Please log in to the system to respond to this ticket.
             """
-            send_email_notification(user.email, subject, body)
+            create_notification(
+                user_id=user.id,
+                title=subject,
+                message=body,
+                ticket_id=ticket.id,
+                notification_type='EMAIL'
+            )
+        
+        # Send SMS notification
+        if user.phone:
+            sms_message = f"New ticket #{ticket.id} ({ticket.title}) requires your attention."
+            create_notification(
+                user_id=user.id,
+                title=f"New Ticket Notification",
+                message=sms_message,
+                ticket_id=ticket.id,
+                notification_type='SMS'
+            )
 
 def notify_ticket_update(ticket, message, exclude_user_id=None):
     """Notify relevant users about ticket updates"""
@@ -84,13 +149,30 @@ def notify_ticket_update(ticket, message, exclude_user_id=None):
             user_id=user.id,
             title=f"Ticket Update: {ticket.title}",
             message=message,
-            ticket_id=ticket.id
+            ticket_id=ticket.id,
+            notification_type='SYSTEM'
         )
         
         # Send email notification
         if user.email:
             subject = f"Ticket Update - #{ticket.id}"
-            send_email_notification(user.email, subject, message)
+            create_notification(
+                user_id=user.id,
+                title=subject,
+                message=message,
+                ticket_id=ticket.id,
+                notification_type='EMAIL'
+            )
+        
+        # Send SMS notification
+        if user.phone:
+            create_notification(
+                user_id=user.id,
+                title=f"Ticket Update Notification",
+                message=message,
+                ticket_id=ticket.id,
+                notification_type='SMS'
+            )
 
 def get_ticket_stats():
     """Get ticket statistics for dashboard"""

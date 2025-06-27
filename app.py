@@ -45,6 +45,35 @@ def create_app():
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@icttickets.com')
+
+    # Africa's Talking configuration
+    app.config['AFRICASTALKING_USERNAME'] = 'ticketingapp'
+    app.config['AFRICASTALKING_API_KEY'] = 'atsk_b6f75c0af4997ba88e976a65c7442df9da5766b7f5e9054ebab41813d5f74078a994e369'
+
+    # Twilio SMS configuration
+    import base64
+    # Securely decode credentials stored as base64 encoded environment variables
+    encoded_sid = os.environ.get('TWILIO_ACCOUNT_SID_ENC')
+    encoded_token = os.environ.get('TWILIO_AUTH_TOKEN_ENC')
+    twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
+
+    if encoded_sid and encoded_token:
+        try:
+            decoded_sid = base64.b64decode(encoded_sid).decode('utf-8')
+            decoded_token = base64.b64decode(encoded_token).decode('utf-8')
+            app.config['TWILIO_ACCOUNT_SID'] = decoded_sid
+            app.config['TWILIO_AUTH_TOKEN'] = decoded_token
+        except Exception as e:
+            app.config['TWILIO_ACCOUNT_SID'] = None
+            app.config['TWILIO_AUTH_TOKEN'] = None
+            import logging
+            logging.error(f"Failed to decode Twilio credentials: {e}")
+    else:
+        # Fallback to plain environment variables if encoded not set
+        app.config['TWILIO_ACCOUNT_SID'] = os.environ.get('TWILIO_ACCOUNT_SID')
+        app.config['TWILIO_AUTH_TOKEN'] = os.environ.get('TWILIO_AUTH_TOKEN')
+
+    app.config['TWILIO_PHONE_NUMBER'] = twilio_phone
     
     # Initialize extensions with app
     db.init_app(app)
