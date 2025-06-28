@@ -7,6 +7,42 @@ from models import Notification, User
 import logging
 
 
+import os
+import logging
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+def send_email_notification(to_email, subject, body, html_body=None):
+    """Send email notification using SendGrid API"""
+    try:
+        message = Mail(
+            from_email=os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@icttickets.com'),
+            to_emails=to_email,
+            subject=subject,
+            plain_text_content=body,
+            html_content=html_body
+        )
+        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+        response = sg.send(message)
+        if response.status_code in [200, 202]:
+            logging.info(f"Email sent successfully to {to_email}")
+            return True
+        else:
+            logging.error(f"Failed to send email to {to_email}: Status code {response.status_code}")
+            return False
+    except Exception as e:
+        logging.error(f"Exception during email sending to {to_email}: {str(e)}")
+        return False
+
+import os
+import requests
+from datetime import datetime, timedelta
+from flask import current_app
+from flask_mail import Message
+from app import mail, db
+from models import Notification, User
+import logging
+
 def send_email_notification(to_email, subject, body, html_body=None):
     """Send email notification"""
     try:
@@ -23,34 +59,48 @@ def send_email_notification(to_email, subject, body, html_body=None):
         logging.error(f"Failed to send email to {to_email}: {str(e)}")
         return False
 
-import africastalking
-
 def send_sms_notification(to_phone, message):
-    """Send SMS notification using Africa's Talking API"""
+    """Send SMS notification using Clickatell One API"""
     try:
-        username = current_app.config.get('AFRICASTALKING_USERNAME')
-        api_key = current_app.config.get('AFRICASTALKING_API_KEY')
-        if not all([username, api_key]):
-            logging.error("Africa's Talking configuration is missing")
+        api_key = current_app.config.get('CLICKATELL_API_KEY')
+        base_url = current_app.config.get('CLICKATELL_BASE_URL', 'https://platform.clickatell.com')
+        if not api_key:
+            logging.error("Clickatell API key is missing")
             return False
-        africastalking.initialize(username, api_key)
-        sms = africastalking.SMS
 
         # Sanitize phone number: remove spaces and format to international if missing country code
         to_phone = to_phone.replace(" ", "")
         if to_phone.startswith('0'):
             to_phone = '+254' + to_phone[1:]
 
-        response = sms.send(message, [to_phone])
-        if response and response['SMSMessageData']['Recipients']:
-            for recipient in response['SMSMessageData']['Recipients']:
-                if recipient['status'] == 'Success':
-                    logging.info(f"SMS sent successfully to {recipient['number']}")
-                else:
-                    logging.error(f"Failed to send SMS to {recipient['number']}: {recipient['status']}")
+        url = f"{base_url}/v1/message"
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            "content": message,
+            "to": [to_phone]
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        logging.debug(f"Clickatell response status: {response.status_code}")
+        logging.debug(f"Clickatell response body: {response.text}")
+
+        if response.status_code in [200, 202]:
+            try:
+                resp_json = response.json()
+                if 'messages' in resp_json:
+                    for msg in resp_json['messages']:
+                        status = msg.get('status')
+                        if status and status != '0':
+                            logging.warning(f"Message to {to_phone} returned status code {status}")
+            except Exception as e:
+                logging.error(f"Error parsing Clickatell response JSON: {e}")
+            logging.info(f"SMS sent successfully to {to_phone}")
             return True
         else:
-            logging.error("Failed to send SMS: No recipients in response")
+            logging.error(f"Failed to send SMS to {to_phone}: {response.status_code} {response.text}")
             return False
     except Exception as e:
         logging.error(f"Exception during SMS sending to {to_phone}: {str(e)}")
