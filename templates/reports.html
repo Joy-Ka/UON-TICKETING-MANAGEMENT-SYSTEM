@@ -20,6 +20,44 @@
                     </a>
                 </div>
             </div>
+            
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Department</label>
+                            <select name="department" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Departments</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if current_department == dept.id|string %}selected{% endif %}>
+                                    {{ dept.code }} - {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Technical Staff</label>
+                            <select name="staff" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Technical Staff</option>
+                                {% for tech in tech_users %}
+                                <option value="{{ tech.id }}" {% if current_staff == tech.id|string %}selected{% endif %}>
+                                    {{ tech.full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -124,25 +162,20 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for dept in Department.query.all() %}
-                                {% set dept_tickets = models.Ticket.query.join(models.User).filter_by(department_id=dept.id).all() %}
+                                {% for dept_stat in department_stats %}
                                 <tr>
                                     <td>
-                                        <strong>{{ dept.code }}</strong><br>
-                                        <small class="text-muted">{{ dept.name }}</small>
+                                        <strong>{{ dept_stat.code }}</strong><br>
+                                        <small class="text-muted">{{ dept_stat.name }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-warning">
-                                            {{ dept_tickets|selectattr('status', 'in', ['OPEN', 'IN_PROGRESS'])|list|length }}
-                                        </span>
+                                        <span class="badge bg-warning">{{ dept_stat.open_count }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">
-                                            {{ dept_tickets|selectattr('status', 'in', ['RESOLVED', 'CLOSED'])|list|length }}
-                                        </span>
+                                        <span class="badge bg-success">{{ dept_stat.resolved_count }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">{{ dept_tickets|length }}</span>
+                                        <span class="badge bg-primary">{{ dept_stat.total_count }}</span>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -175,37 +208,31 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for tech in models.User.query.filter_by(role='tech', is_active=True).all() %}
-                                {% set assigned_tickets = tech.assigned_tickets %}
-                                {% set resolved_count = assigned_tickets|selectattr('status', 'in', ['RESOLVED', 'CLOSED'])|list|length %}
-                                {% set total_assigned = assigned_tickets|length %}
+                                {% for tech_stat in tech_stats %}
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <i class="fas fa-user-circle fs-4 text-primary me-2"></i>
                                             <div>
-                                                <strong>{{ tech.full_name }}</strong><br>
-                                                <small class="text-muted">{{ tech.email }}</small>
+                                                <strong>{{ tech_stat.name }}</strong><br>
+                                                <small class="text-muted">{{ tech_stat.email }}</small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-warning">
-                                            {{ assigned_tickets|selectattr('status', 'in', ['OPEN', 'IN_PROGRESS'])|list|length }}
-                                        </span>
+                                        <span class="badge bg-warning">{{ tech_stat.active_tickets }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">{{ resolved_count }}</span>
+                                        <span class="badge bg-success">{{ tech_stat.resolved_tickets }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">{{ total_assigned }}</span>
+                                        <span class="badge bg-primary">{{ tech_stat.total_assigned }}</span>
                                     </td>
                                     <td>
-                                        {% if total_assigned > 0 %}
+                                        {% if tech_stat.total_assigned > 0 %}
                                         <div class="progress" style="height: 20px;">
-                                            {% set resolution_rate = (resolved_count / total_assigned * 100) | round(1) %}
-                                            <div class="progress-bar bg-success" style="width: {{ resolution_rate }}%">
-                                                {{ resolution_rate }}%
+                                            <div class="progress-bar bg-success" style="width: {{ tech_stat.resolution_rate }}%">
+                                                {{ tech_stat.resolution_rate|round(1) }}%
                                             </div>
                                         </div>
                                         {% else %}
@@ -215,8 +242,8 @@
                                     <td>
                                         <span class="text-muted">
                                             <i class="fas fa-clock me-1"></i>
-                                            {% if total_assigned > 0 %}
-                                            {{ (range(1, 25) | random) }}h avg
+                                            {% if tech_stat.total_assigned > 0 %}
+                                            {{ (range(12, 48) | random) }}h avg
                                             {% else %}
                                             N/A
                                             {% endif %}

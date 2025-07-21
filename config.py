@@ -1,18 +1,17 @@
-
 import os
 from urllib.parse import urlparse
 
 class Config:
     """Base configuration with common settings"""
     SECRET_KEY = os.environ.get("SESSION_SECRET") or "dev_secret_key_change_me"
-    
+
     # Database configuration
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
     }
-    
+
     # Mail configuration
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', '587'))
@@ -20,10 +19,10 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@icttickets.com')
-    
+
     # SendGrid configuration
     SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-    
+
     # Clickatell SMS configuration
     CLICKATELL_API_KEY = 'n9rqL_BMSIWl_BxogvsAwA=='
     CLICKATELL_BASE_URL = 'https://platform.clickatell.com'
@@ -42,7 +41,7 @@ class ReplitConfig(Config):
     # Bind to 0.0.0.0 for Replit accessibility
     HOST = '0.0.0.0'
     PORT = 5000
-    
+
     # PostgreSQL specific configuration for better performance
     if os.environ.get('DATABASE_URL') and 'postgresql' in os.environ.get('DATABASE_URL', ''):
         SQLALCHEMY_ENGINE_OPTIONS = {

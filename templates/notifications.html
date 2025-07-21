@@ -14,7 +14,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -73,10 +73,7 @@
 <script>
 function markAsRead(notificationId) {
     fetch(`/api/notifications/mark_read/${notificationId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+        method: 'GET',
     })
     .then(response => response.json())
     .then(data => {
@@ -84,12 +81,29 @@ function markAsRead(notificationId) {
             location.reload();
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error:', error);
+    });
 }
 
 function markAllAsRead() {
-    // This would require a server endpoint to mark all notifications as read
-    alert('Mark all as read functionality would be implemented with a server endpoint');
+    if (confirm('Mark all notifications as read?')) {
+        fetch('/api/notifications/mark_all_read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
 }
 </script>
 {% endblock %}

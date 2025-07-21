@@ -455,12 +455,75 @@ def toggle_user_status(user_id):
 def reports():
     if current_user.role not in ['admin', 'tech']:
         abort(403)
+    
+    department_filter = request.args.get('department', '')
+    staff_filter = request.args.get('staff', '')
 
     stats = get_ticket_stats()
     monthly_data = get_monthly_ticket_data()
+    
+    # Get department statistics with explicit joins to avoid ambiguity
+    department_stats = []
+    departments = Department.query.all()
+    
+    for dept in departments:
+        # Use explicit join condition to avoid AmbiguousForeignKeysError
+        tickets_query = db.session.query(Ticket).join(
+            User, Ticket.created_by_id == User.id
+        ).filter(User.department_id == dept.id)
+        
+        if department_filter and department_filter != str(dept.id):
+            continue
+            
+        total_count = tickets_query.count()
+        open_count = tickets_query.filter(Ticket.status.in_(['OPEN', 'IN_PROGRESS'])).count()
+        resolved_count = tickets_query.filter(Ticket.status.in_(['RESOLVED', 'CLOSED'])).count()
+        
+        if total_count > 0:  # Only include departments with tickets
+            dept_stat = type('DeptStat', (), {
+                'id': dept.id,
+                'name': dept.name,
+                'code': dept.code,
+                'total_count': total_count,
+                'open_count': open_count,
+                'resolved_count': resolved_count
+            })()
+            department_stats.append(dept_stat)
+    
+    # Get technical staff performance data
+    tech_stats = []
+    tech_users = User.query.filter_by(role='tech', is_active=True).all()
+    
+    for tech in tech_users:
+        if staff_filter and staff_filter != str(tech.id):
+            continue
+            
+        assigned_tickets = Ticket.query.filter_by(assigned_to_id=tech.id).all()
+        total_assigned = len(assigned_tickets)
+        active_tickets = len([t for t in assigned_tickets if t.status in ['OPEN', 'IN_PROGRESS']])
+        resolved_tickets = len([t for t in assigned_tickets if t.status in ['RESOLVED', 'CLOSED']])
+        
+        tech_stat = type('TechStat', (), {
+            'id': tech.id,
+            'name': tech.full_name,
+            'email': tech.email,
+            'total_assigned': total_assigned,
+            'active_tickets': active_tickets,
+            'resolved_tickets': resolved_tickets,
+            'resolution_rate': (resolved_tickets / total_assigned * 100) if total_assigned > 0 else 0
+        })()
+        tech_stats.append(tech_stat)
 
-    return render_template('reports.html', stats=stats, monthly_data=monthly_data, 
-                         User=User, Ticket=Ticket, Department=Department, models=models)
+    return render_template('reports.html', 
+                         stats=stats, 
+                         monthly_data=monthly_data,
+                         department_stats=department_stats,
+                         tech_stats=tech_stats,
+                         departments=departments,
+                         tech_users=tech_users,
+                         current_department=department_filter,
+                         current_staff=staff_filter,
+                         User=User, Ticket=Ticket, Department=Department)
 
 @app.route('/reports/print')
 @login_required
@@ -470,10 +533,11 @@ def print_reports():
 
     try:
         from datetime import datetime, timedelta
-        from sqlalchemy import func
 
         # Get report parameters
-        report_type = request.args.get('type', 'weekly')  # daily, weekly, monthly
+        report_type = request.args.get('type', 'weekly')
+        department_filter = request.args.get('department', '')
+        staff_filter = request.args.get('staff', '')
 
         # Calculate date range
         now = datetime.now()
@@ -487,47 +551,71 @@ def print_reports():
             start_date = now - timedelta(days=30)
             end_date = now
 
-        # Get tickets for the period
-        tickets = Ticket.query.filter(
-            Ticket.created_at.between(start_date, end_date)
-        ).order_by(Ticket.created_at.desc()).all()
+        # Base tickets query
+        tickets_query = db.session.query(Ticket).join(
+            User, Ticket.created_by_id == User.id
+        ).filter(Ticket.created_at.between(start_date, end_date))
+        
+        # Apply department filter
+        if department_filter:
+            tickets_query = tickets_query.filter(User.department_id == department_filter)
+        
+        # Apply staff filter (for assigned tickets)
+        if staff_filter:
+            tickets_query = tickets_query.filter(Ticket.assigned_to_id == staff_filter)
+            
+        tickets = tickets_query.order_by(Ticket.created_at.desc()).all()
 
         # Get statistics
         stats = get_ticket_stats()
+        
+        # Get filtered statistics
+        filtered_stats = {
+            'total_tickets': len(tickets),
+            'open_tickets': len([t for t in tickets if t.status == 'OPEN']),
+            'in_progress_tickets': len([t for t in tickets if t.status == 'IN_PROGRESS']),
+            'resolved_tickets': len([t for t in tickets if t.status == 'RESOLVED']),
+            'closed_tickets': len([t for t in tickets if t.status == 'CLOSED']),
+            'urgent_tickets': len([t for t in tickets if t.priority == 'URGENT'])
+        }
 
-        # Simple department breakdown without complex joins
+        # Department breakdown with explicit joins
         department_stats = []
-        departments = Department.query.all()
+        if not department_filter:  # Show all departments if no filter
+            departments = Department.query.all()
+            for dept in departments:
+                dept_tickets_query = db.session.query(Ticket).join(
+                    User, Ticket.created_by_id == User.id
+                ).filter(
+                    User.department_id == dept.id,
+                    Ticket.created_at.between(start_date, end_date)
+                )
 
-        for dept in departments:
-            # Explicit join condition to avoid AmbiguousForeignKeysError
-            tickets_for_dept = models.Ticket.query.join(
-                models.User, models.Ticket.created_by_id == models.User.id
-            ).filter(
-                models.User.department_id == dept.id,
-                models.Ticket.created_at.between(start_date, end_date)
-            )
+                total = dept_tickets_query.count()
+                if total > 0:
+                    department_stats.append(type('DeptStat', (), {
+                        'department_name': dept.name,
+                        'total': total,
+                        'open': dept_tickets_query.filter(Ticket.status == 'OPEN').count(),
+                        'resolved': dept_tickets_query.filter(Ticket.status == 'RESOLVED').count(),
+                        'closed': dept_tickets_query.filter(Ticket.status == 'CLOSED').count()
+                    })())
+        
+        # Get report title based on filters
+        report_title = f"{report_type.title()} Report"
+        if department_filter:
+            dept = Department.query.get(department_filter)
+            report_title += f" - {dept.name}" if dept else ""
+        if staff_filter:
+            tech = User.query.get(staff_filter)
+            report_title += f" - {tech.full_name}" if tech else ""
 
-            total = tickets_for_dept.count()
-            open_count = tickets_for_dept.filter(models.Ticket.status == 'OPEN').count()
-            resolved_count = tickets_for_dept.filter(models.Ticket.status == 'RESOLVED').count()
-            closed_count = tickets_for_dept.filter(models.Ticket.status == 'CLOSED').count()
-
-            if total > 0:  # Only include departments with tickets
-                department_stats.append(type('DeptStat', (), {
-                    'department_name': dept.name,
-                    'total': total,
-                    'open': open_count,
-                    'resolved': resolved_count,
-                    'closed': closed_count
-                })())
-
-        # Pass department_stats to template and remove query logic from template
         return render_template('reports_printable.html', 
-                             stats=stats, 
+                             stats=filtered_stats, 
                              tickets=tickets,
                              department_stats=department_stats,
                              report_type=report_type,
+                             report_title=report_title,
                              current_date=now)
     except Exception as e:
         print(f"Reports error: {e}")
