@@ -14,7 +14,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Users Table -->
     <div class="row">
         <div class="col-12">
@@ -112,7 +112,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- User Statistics -->
     <div class="row mt-4">
         <div class="col-md-3">
@@ -172,7 +172,7 @@
                             <input type="text" name="last_name" class="form-control" required>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Username</label>
@@ -183,7 +183,7 @@
                             <input type="email" name="email" class="form-control" required>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone</label>
@@ -199,7 +199,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Department</label>
@@ -215,7 +215,7 @@
                             <input type="password" name="password" class="form-control" required minlength="6">
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Confirm Password</label>
                         <input type="password" name="confirm_password" class="form-control" required>
@@ -237,7 +237,7 @@
 document.querySelector('form').addEventListener('submit', function(e) {
     const password = document.querySelector('input[name="password"]').value;
     const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
-    
+
     if (password !== confirmPassword) {
         e.preventDefault();
         alert('Passwords do not match!');

@@ -453,7 +453,7 @@ def toggle_user_status(user_id):
 @app.route('/reports')
 @login_required
 def reports():
-    if current_user.role not in ['admin', 'tech']:
+    if current_user.role != 'admin':
         abort(403)
     
     department_filter = request.args.get('department', '')
@@ -523,12 +523,13 @@ def reports():
                          tech_users=tech_users,
                          current_department=department_filter,
                          current_staff=staff_filter,
+                         models=models,
                          User=User, Ticket=Ticket, Department=Department)
 
 @app.route('/reports/print')
 @login_required
 def print_reports():
-    if current_user.role not in ['admin', 'tech']:
+    if current_user.role != 'admin':
         abort(403)
 
     try:
@@ -703,6 +704,44 @@ def reject_tech_user(user_id):
         flash('Invalid user or user is already active.', 'danger')
 
     return redirect(url_for('approve_tech_users'))
+
+@app.route('/admin/test-notifications', methods=['POST'])
+@login_required
+def test_notifications():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    try:
+        from utils import send_sms_notification, send_email_notification
+        
+        # Test SMS to admin
+        if current_user.phone:
+            sms_sent = send_sms_notification(
+                current_user.phone, 
+                "Test SMS from ICT Ticketing System. SMS notifications are working!"
+            )
+            if sms_sent:
+                flash('Test SMS sent successfully!', 'success')
+            else:
+                flash('Failed to send test SMS. Check Twilio configuration.', 'warning')
+        else:
+            flash('No phone number on file for SMS test.', 'info')
+        
+        # Test Email to admin
+        email_sent = send_email_notification(
+            current_user.email,
+            "Test Email from ICT Ticketing System",
+            "This is a test email to verify that email notifications are working correctly."
+        )
+        if email_sent:
+            flash('Test email sent successfully!', 'success')
+        else:
+            flash('Failed to send test email. Check SendGrid configuration.', 'warning')
+            
+    except Exception as e:
+        flash(f'Error testing notifications: {str(e)}', 'danger')
+    
+    return redirect(url_for('list_users'))
 
 @app.route('/download/<int:attachment_id>')
 @login_required
