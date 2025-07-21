@@ -458,6 +458,10 @@ def reports():
         flash('Access denied. Only administrators can view reports.', 'error')
         return redirect(url_for('dashboard'))
 
+    # Get filter parameters from request
+    department_filter = request.args.get('department', '')
+    staff_filter = request.args.get('staff', '')
+
     # Import models to make it available in template
     import models
 
