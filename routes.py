@@ -454,7 +454,7 @@ def toggle_user_status(user_id):
 @login_required
 def reports():
     # Only allow admin users to access reports
-    if current_user.role != 'ADMIN':
+    if current_user.role != 'admin':
         flash('Access denied. Only administrators can view reports.', 'error')
         return redirect(url_for('dashboard'))
 
