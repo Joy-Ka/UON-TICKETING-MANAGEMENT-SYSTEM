@@ -252,32 +252,33 @@ def notify_ticket_update(ticket, message, exclude_user_id=None):
             )
 
 def get_ticket_stats():
-    """Get comprehensive ticket statistics"""
+    """Get ticket statistics for dashboard"""
     from models import Ticket
 
-    total = Ticket.query.count()
+    total_tickets = Ticket.query.count()
     open_tickets = Ticket.query.filter_by(status='OPEN').count()
-    in_progress = Ticket.query.filter_by(status='IN_PROGRESS').count()
-    resolved = Ticket.query.filter_by(status='RESOLVED').count()
-    closed = Ticket.query.filter_by(status='CLOSED').count()
+    in_progress_tickets = Ticket.query.filter_by(status='IN_PROGRESS').count()
+    resolved_tickets = Ticket.query.filter_by(status='RESOLVED').count()
+    closed_tickets = Ticket.query.filter_by(status='CLOSED').count()
 
-    # Priority statistics
-    urgent = Ticket.query.filter_by(priority='URGENT').count()
-    high = Ticket.query.filter_by(priority='HIGH').count()
-    medium = Ticket.query.filter_by(priority='MEDIUM').count()
-    low = Ticket.query.filter_by(priority='LOW').count()
+    urgent_tickets = Ticket.query.filter_by(priority='URGENT').filter(
+        Ticket.status.in_(['OPEN', 'IN_PROGRESS'])
+    ).count()
 
-    return {
-        'total': total,
+    return type('Stats', (), {
+        'total_tickets': total_tickets,
+        'open_tickets': open_tickets,
+        'in_progress_tickets': in_progress_tickets,
+        'resolved_tickets': resolved_tickets,
+        'closed_tickets': closed_tickets,
+        'urgent_tickets': urgent_tickets,
+        'total': total_tickets,
         'open': open_tickets,
-        'in_progress': in_progress,
-        'resolved': resolved,
-        'closed': closed,
-        'urgent': urgent,
-        'high': high,
-        'medium': medium,
-        'low': low
-    }
+        'in_progress': in_progress_tickets,
+        'resolved': resolved_tickets,
+        'closed': closed_tickets,
+        'urgent': urgent_tickets
+    })()
 
 def get_monthly_ticket_data():
     """Get monthly ticket data for reports"""
