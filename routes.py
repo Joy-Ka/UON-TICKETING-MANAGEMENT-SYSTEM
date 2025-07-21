@@ -587,63 +587,6 @@ def print_reports():
             'in_progress_tickets': len([t for t in tickets if t.status == 'IN_PROGRESS']),
             'resolved_tickets': len([t for t in tickets if t.status == 'RESOLVED']),
             'closed_tickets': len([t for t in tickets if t.status == 'CLOSED']),
-
-
-@app.route('/profile', methods=['GET', 'POST'])
-@login_required
-def profile():
-    profile_form = ProfileForm(obj=current_user)
-    password_form = ChangePasswordForm()
-    
-    # Handle profile update
-    if request.method == 'POST' and 'update_profile' in request.form:
-        if profile_form.validate_on_submit():
-            # Check if email is already taken by another user
-            existing_user = User.query.filter_by(email=profile_form.email.data).first()
-            if existing_user and existing_user.id != current_user.id:
-                flash('Email address is already in use by another user.', 'danger')
-                return render_template('profile.html', profile_form=profile_form, password_form=password_form)
-            
-            # Update user profile
-            current_user.first_name = profile_form.first_name.data
-            current_user.last_name = profile_form.last_name.data
-            current_user.email = profile_form.email.data
-            current_user.phone = profile_form.phone.data
-            
-            # Only allow department change for regular users (not tech or admin)
-            if current_user.role == 'user':
-                current_user.department_id = profile_form.department_id.data if profile_form.department_id.data > 0 else None
-            
-            current_user.updated_at = datetime.utcnow()
-            db.session.commit()
-            
-            flash('Profile updated successfully!', 'success')
-            return redirect(url_for('profile'))
-    
-    # Handle password change
-    if request.method == 'POST' and 'change_password' in request.form:
-        if password_form.validate_on_submit():
-            # Verify current password
-            if not current_user.check_password(password_form.current_password.data):
-                flash('Current password is incorrect.', 'danger')
-                return render_template('profile.html', profile_form=profile_form, password_form=password_form)
-            
-            # Update password
-            current_user.set_password(password_form.new_password.data)
-            current_user.updated_at = datetime.utcnow()
-            db.session.commit()
-            
-            flash('Password changed successfully!', 'success')
-            return redirect(url_for('profile'))
-    
-    # Populate department field for GET request
-    if current_user.department_id:
-        profile_form.department_id.data = current_user.department_id
-    else:
-        profile_form.department_id.data = 0
-    
-    return render_template('profile.html', profile_form=profile_form, password_form=password_form)
-
             'urgent_tickets': len([t for t in tickets if t.priority == 'URGENT'])
         }
 
@@ -690,7 +633,60 @@ def profile():
         flash('Error generating reports. Please try again.', 'danger')
         return redirect(url_for('reports'))
 
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    profile_form = ProfileForm(obj=current_user)
+    password_form = ChangePasswordForm()
 
+    # Handle profile update
+    if request.method == 'POST' and 'update_profile' in request.form:
+        if profile_form.validate_on_submit():
+            # Check if email is already taken by another user
+            existing_user = User.query.filter_by(email=profile_form.email.data).first()
+            if existing_user and existing_user.id != current_user.id:
+                flash('Email address is already in use by another user.', 'danger')
+                return render_template('profile.html', profile_form=profile_form, password_form=password_form)
+
+            # Update user profile
+            current_user.first_name = profile_form.first_name.data
+            current_user.last_name = profile_form.last_name.data
+            current_user.email = profile_form.email.data
+            current_user.phone = profile_form.phone.data
+
+            # Only allow department change for regular users (not tech or admin)
+            if current_user.role == 'user':
+                current_user.department_id = profile_form.department_id.data if profile_form.department_id.data > 0 else None
+
+            current_user.updated_at = datetime.utcnow()
+            db.session.commit()
+
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('profile'))
+
+    # Handle password change
+    if request.method == 'POST' and 'change_password' in request.form:
+        if password_form.validate_on_submit():
+            # Verify current password
+            if not current_user.check_password(password_form.current_password.data):
+                flash('Current password is incorrect.', 'danger')
+                return render_template('profile.html', profile_form=profile_form, password_form=password_form)
+
+            # Update password
+            current_user.set_password(password_form.new_password.data)
+            current_user.updated_at = datetime.utcnow()
+            db.session.commit()
+
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('profile'))
+
+    # Populate department field for GET request
+    if current_user.department_id:
+        profile_form.department_id.data = current_user.department_id
+    else:
+        profile_form.department_id.data = 0
+
+    return render_template('profile.html', profile_form=profile_form, password_form=password_form)
 
 @app.route('/api/notifications/mark_read/<int:notification_id>')
 @login_required
