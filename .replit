@@ -3,3 +3,15 @@ modules = ["web", "python-3.11", "nodejs-20"]
 [nix]
 channel = "stable-24_05"
 packages = ["libmysqlclient"]
+
+[workflows]
+runButton = "Run Flask App"
+
+[[workflows.workflow]]
+name = "Run Flask App"
+author = 41284613
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
