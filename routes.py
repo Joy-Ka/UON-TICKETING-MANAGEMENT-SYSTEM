@@ -453,32 +453,34 @@ def toggle_user_status(user_id):
 @app.route('/reports')
 @login_required
 def reports():
-    if current_user.role != 'admin':
-        abort(403)
-    
-    department_filter = request.args.get('department', '')
-    staff_filter = request.args.get('staff', '')
+    # Only allow admin users to access reports
+    if current_user.role != 'ADMIN':
+        flash('Access denied. Only administrators can view reports.', 'error')
+        return redirect(url_for('dashboard'))
+
+    # Import models to make it available in template
+    import models
 
     stats = get_ticket_stats()
     monthly_data = get_monthly_ticket_data()
-    
+
     # Get department statistics with explicit joins to avoid ambiguity
     department_stats = []
     departments = Department.query.all()
-    
+
     for dept in departments:
         # Use explicit join condition to avoid AmbiguousForeignKeysError
         tickets_query = db.session.query(Ticket).join(
             User, Ticket.created_by_id == User.id
         ).filter(User.department_id == dept.id)
-        
+
         if department_filter and department_filter != str(dept.id):
             continue
-            
+
         total_count = tickets_query.count()
         open_count = tickets_query.filter(Ticket.status.in_(['OPEN', 'IN_PROGRESS'])).count()
         resolved_count = tickets_query.filter(Ticket.status.in_(['RESOLVED', 'CLOSED'])).count()
-        
+
         if total_count > 0:  # Only include departments with tickets
             dept_stat = type('DeptStat', (), {
                 'id': dept.id,
@@ -489,20 +491,20 @@ def reports():
                 'resolved_count': resolved_count
             })()
             department_stats.append(dept_stat)
-    
+
     # Get technical staff performance data
     tech_stats = []
     tech_users = User.query.filter_by(role='tech', is_active=True).all()
-    
+
     for tech in tech_users:
         if staff_filter and staff_filter != str(tech.id):
             continue
-            
+
         assigned_tickets = Ticket.query.filter_by(assigned_to_id=tech.id).all()
         total_assigned = len(assigned_tickets)
         active_tickets = len([t for t in assigned_tickets if t.status in ['OPEN', 'IN_PROGRESS']])
         resolved_tickets = len([t for t in assigned_tickets if t.status in ['RESOLVED', 'CLOSED']])
-        
+
         tech_stat = type('TechStat', (), {
             'id': tech.id,
             'name': tech.full_name,
@@ -556,20 +558,20 @@ def print_reports():
         tickets_query = db.session.query(Ticket).join(
             User, Ticket.created_by_id == User.id
         ).filter(Ticket.created_at.between(start_date, end_date))
-        
+
         # Apply department filter
         if department_filter:
             tickets_query = tickets_query.filter(User.department_id == department_filter)
-        
+
         # Apply staff filter (for assigned tickets)
         if staff_filter:
             tickets_query = tickets_query.filter(Ticket.assigned_to_id == staff_filter)
-            
+
         tickets = tickets_query.order_by(Ticket.created_at.desc()).all()
 
         # Get statistics
         stats = get_ticket_stats()
-        
+
         # Get filtered statistics
         filtered_stats = {
             'total_tickets': len(tickets),
@@ -601,7 +603,7 @@ def print_reports():
                         'resolved': dept_tickets_query.filter(Ticket.status == 'RESOLVED').count(),
                         'closed': dept_tickets_query.filter(Ticket.status == 'CLOSED').count()
                     })())
-        
+
         # Get report title based on filters
         report_title = f"{report_type.title()} Report"
         if department_filter:
@@ -710,10 +712,10 @@ def reject_tech_user(user_id):
 def test_notifications():
     if current_user.role != 'admin':
         abort(403)
-    
+
     try:
         from utils import send_sms_notification, send_email_notification
-        
+
         # Test SMS to admin
         if current_user.phone:
             sms_sent = send_sms_notification(
@@ -726,7 +728,7 @@ def test_notifications():
                 flash('Failed to send test SMS. Check Twilio configuration.', 'warning')
         else:
             flash('No phone number on file for SMS test.', 'info')
-        
+
         # Test Email to admin
         email_sent = send_email_notification(
             current_user.email,
@@ -737,10 +739,10 @@ def test_notifications():
             flash('Test email sent successfully!', 'success')
         else:
             flash('Failed to send test email. Check SendGrid configuration.', 'warning')
-            
+
     except Exception as e:
         flash(f'Error testing notifications: {str(e)}', 'danger')
-    
+
     return redirect(url_for('list_users'))
 
 @app.route('/download/<int:attachment_id>')
