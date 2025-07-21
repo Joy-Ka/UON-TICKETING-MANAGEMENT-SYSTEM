@@ -221,8 +221,6 @@ def create_ticket():
         flash('Ticket created successfully!', 'success')
         return redirect(url_for('view_ticket', ticket_id=ticket.id))
 
-    return render_template('ticket_create.html', form=form)
-
 @app.route('/ticket/<int:ticket_id>')
 @login_required
 def view_ticket(ticket_id):
@@ -230,6 +228,9 @@ def view_ticket(ticket_id):
 
     # Check permissions
     if current_user.role == 'user' and ticket.created_by_id != current_user.id:
+        abort(403)
+    elif current_user.role == 'tech' and ticket.assigned_to_id != current_user.id:
+        # Tech users can only see tickets assigned to them
         abort(403)
 
     comments = TicketComment.query.filter_by(ticket_id=ticket_id).order_by(TicketComment.created_at.asc()).all()
@@ -257,6 +258,9 @@ def add_comment(ticket_id):
 
     # Check permissions
     if current_user.role == 'user' and ticket.created_by_id != current_user.id:
+        abort(403)
+    elif current_user.role == 'tech' and ticket.assigned_to_id != current_user.id:
+        # Tech users can only comment on tickets assigned to them
         abort(403)
 
     form = CommentForm()

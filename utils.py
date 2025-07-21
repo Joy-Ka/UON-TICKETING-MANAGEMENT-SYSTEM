@@ -160,8 +160,8 @@ def create_notification(user_id, title, message, ticket_id=None, notification_ty
     return notification
 
 def notify_tech_team(ticket):
-    """Notify all technical team members about a new ticket"""
-    tech_users = User.query.filter(User.role.in_(['tech', 'admin']), User.is_active == True).all()
+    """Notify only admin users about a new ticket - they will assign it to tech team"""
+    tech_users = User.query.filter_by(role='admin', is_active=True).all()
 
     for user in tech_users:
         # Create system notification

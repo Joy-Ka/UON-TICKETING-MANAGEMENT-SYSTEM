@@ -10,7 +10,7 @@
             <p class="text-muted">Monitor and manage support tickets</p>
         </div>
     </div>
-    
+
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-lg-2 col-md-4 col-sm-6">
@@ -68,54 +68,28 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Main Content -->
     <div class="row">
-        <!-- Unassigned Tickets -->
+        <!-- Information Card -->
         <div class="col-lg-6 mb-4">
             <div class="card">
                 <div class="card-header bg-warning text-white">
-                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Unassigned Tickets</h5>
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Information</h5>
                 </div>
                 <div class="card-body">
-                    {% if unassigned_tickets %}
-                    {% for ticket in unassigned_tickets[:5] %}
-                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">
-                                <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" class="text-decoration-none">
-                                    #{{ ticket.id }} - {{ ticket.title[:50] }}...
-                                </a>
-                            </h6>
-                            <small class="text-muted">
-                                <i class="fas fa-user me-1"></i>{{ ticket.creator.full_name }}
-                                <i class="fas fa-clock ms-2 me-1"></i>{{ ticket.created_at.strftime('%m/%d %H:%M') }}
-                            </small>
-                        </div>
-                        <div class="ms-3">
-                            <span class="badge bg-{{ ticket.priority_color }} me-2">{{ ticket.priority }}</span>
-                            <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" 
-                               class="btn btn-sm btn-primary">Take</a>
-                        </div>
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb me-2"></i>How It Works</h6>
+                        <p class="mb-0">New tickets are first reviewed by administrators who will assign them to the appropriate technical staff member. You will only see tickets that have been assigned to you.</p>
                     </div>
-                    {% endfor %}
-                    {% if unassigned_tickets|length > 5 %}
-                    <div class="text-center mt-3">
-                        <a href="{{ url_for('list_tickets', status='OPEN') }}" class="btn btn-outline-primary">
-                            View All ({{ unassigned_tickets|length }})
-                        </a>
+                    <div class="text-center">
+                        <i class="fas fa-user-cog fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Waiting for ticket assignments from administrators.</p>
                     </div>
-                    {% endif %}
-                    {% else %}
-                    <div class="text-center py-3">
-                        <i class="fas fa-check-circle fs-2 text-success mb-2"></i>
-                        <p class="text-muted mb-0">No unassigned tickets</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
-        
+
         <!-- My Assigned Tickets -->
         <div class="col-lg-6 mb-4">
             <div class="card">
