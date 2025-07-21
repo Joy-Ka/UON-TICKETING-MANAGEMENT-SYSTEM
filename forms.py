@@ -102,7 +102,12 @@ class AssignTicketForm(FlaskForm):
         self.assigned_to_id.choices = [(u.id, u.full_name) for u in tech_users]
 
 class UpdateTicketStatusForm(FlaskForm):
-
+    status = SelectField('Status', choices=[
+        ('OPEN', 'Open'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('RESOLVED', 'Resolved'),
+        ('CLOSED', 'Closed')
+    ], validators=[DataRequired()])
 
 class ProfileForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
@@ -122,10 +127,3 @@ class ChangePasswordForm(FlaskForm):
     new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
     confirm_password = PasswordField('Confirm New Password', 
                                    validators=[DataRequired(), EqualTo('new_password', message='Passwords must match')])
-
-    status = SelectField('Status', choices=[
-        ('OPEN', 'Open'),
-        ('IN_PROGRESS', 'In Progress'),
-        ('RESOLVED', 'Resolved'),
-        ('CLOSED', 'Closed')
-    ], validators=[DataRequired()])
