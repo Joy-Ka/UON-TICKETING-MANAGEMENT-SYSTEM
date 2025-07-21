@@ -20,7 +20,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <!-- Filters -->
             <div class="card mb-4">
                 <div class="card-body">
@@ -60,7 +60,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
@@ -104,34 +104,41 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Charts Row -->
     <div class="row mb-4">
-        <!-- Monthly Tickets Chart -->
-        <div class="col-lg-8 mb-4">
+        <div class="col-md-6 mb-3">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Monthly Ticket Trends</h5>
                 </div>
-                <div class="card-body">
-                    <canvas id="monthlyChart" height="100"></canvas>
+                <div class="card-body" style="height: 300px;">
+                    <canvas id="trendsChart"></canvas>
                 </div>
             </div>
         </div>
-        
-        <!-- Priority Distribution -->
-        <div class="col-lg-4 mb-4">
+        <div class="col-md-3 mb-3">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Priority Distribution</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="height: 300px; position: relative;">
                     <canvas id="priorityChart"></canvas>
                 </div>
             </div>
         </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
-    
+
     <!-- Status Distribution and Department Performance -->
     <div class="row mb-4">
         <div class="col-lg-6 mb-4">
@@ -144,7 +151,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-6 mb-4">
             <div class="card">
                 <div class="card-header">
@@ -186,7 +193,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Performance Metrics -->
     <div class="row mb-4">
         <div class="col-12">
@@ -258,7 +265,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Export Options -->
     <div class="row">
         <div class="col-12">
@@ -304,7 +311,7 @@
 <script>
 /* Monthly Tickets Chart */
 const monthlyData = {{ monthly_data | tojsonfilter | safe }};
-const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyCtx = document.getElementById('trendsChart').getContext('2d');
 new Chart(monthlyCtx, {
     type: 'line',
     data: {
@@ -312,25 +319,48 @@ new Chart(monthlyCtx, {
         datasets: [{
             label: 'Tickets Created',
             data: Object.values(monthlyData),
-            borderColor: 'rgb(54, 162, 235)',
-            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            fill: true,
             tension: 0.4,
-            fill: true
+            pointBackgroundColor: '#0d6efd',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 4
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
         scales: {
             y: {
                 beginAtZero: true,
                 ticks: {
-                    stepSize: 1
+                    stepSize: 1,
+                    callback: function(value) {
+                        return Math.floor(value) === value ? value : '';
+                    }
+                },
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.parsed.y + ' tickets';
+                    }
                 }
             }
         }
@@ -339,34 +369,58 @@ new Chart(monthlyCtx, {
 
 /* Priority Distribution Chart */
 const priorityCtx = document.getElementById('priorityChart').getContext('2d');
-new Chart(priorityCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Urgent', 'High', 'Medium', 'Low'],
-        datasets: [{
-            data: [
-                {{ models.Ticket.query.filter_by(priority='URGENT').count() }},
-                {{ models.Ticket.query.filter_by(priority='HIGH').count() }},
-                {{ models.Ticket.query.filter_by(priority='MEDIUM').count() }},
-                {{ models.Ticket.query.filter_by(priority='LOW').count() }}
-            ],
-            backgroundColor: [
-                '#dc3545', /* Red for Urgent */
-                '#fd7e14', /* Orange for High */
-                '#0dcaf0', /* Cyan for Medium */
-                '#198754'  /* Green for Low */
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'bottom'
+const priorityData = [
+    {{ stats.urgent }},
+    {{ stats.high }},
+    {{ stats.medium }},
+    {{ stats.low }}
+];
+
+// Only show chart if there's data
+if (priorityData.some(value => value > 0)) {
+    new Chart(priorityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Urgent', 'High', 'Medium', 'Low'],
+            datasets: [{
+                data: priorityData,
+                backgroundColor: [
+                    '#dc3545', /* Red for Urgent */
+                    '#fd7e14', /* Orange for High */
+                    '#ffc107', /* Yellow for Medium */
+                    '#198754'  /* Green for Low */
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': ' + context.parsed + ' tickets (' + percentage + '%)';
+                        }
+                    }
+                }
             }
         }
-    }
-});
+    });
+} else {
+    priorityCtx.canvas.style.display = 'none';
+    priorityCtx.canvas.parentNode.innerHTML = '<div class="text-center py-4"><i class="fas fa-chart-pie fa-3x text-muted mb-3"></i><p class="text-muted">No priority data available</p></div>';
+}
 
 /* Status Distribution Chart */
 const statusCtx = document.getElementById('statusChart').getContext('2d');
