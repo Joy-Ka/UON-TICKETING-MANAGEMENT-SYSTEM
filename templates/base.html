@@ -145,6 +145,9 @@
                                 <small class="text-muted">{{ current_user.role.title() }}</small>
                             </span></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}" style="color: #202124 !important;">
+                                <i class="fas fa-user-edit me-1"></i>My Profile
+                            </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}" style="color: #202124 !important;">
                                 <i class="fas fa-sign-out-alt me-1"></i>Logout
                             </a></li>

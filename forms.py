@@ -102,6 +102,27 @@ class AssignTicketForm(FlaskForm):
         self.assigned_to_id.choices = [(u.id, u.full_name) for u in tech_users]
 
 class UpdateTicketStatusForm(FlaskForm):
+
+
+class ProfileForm(FlaskForm):
+    first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])
+    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=50)])
+    email = StringField('Email Address', validators=[DataRequired(), Email()])
+    phone = StringField('Phone Number')
+    department_id = SelectField('Department', coerce=int)
+    
+    def __init__(self, *args, **kwargs):
+        super(ProfileForm, self).__init__(*args, **kwargs)
+        from models import Department
+        self.department_id.choices = [(d.id, d.name) for d in Department.query.all()]
+        self.department_id.choices.insert(0, (0, 'No Department'))
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField('Current Password', validators=[DataRequired()])
+    new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm New Password', 
+                                   validators=[DataRequired(), EqualTo('new_password', message='Passwords must match')])
+
     status = SelectField('Status', choices=[
         ('OPEN', 'Open'),
         ('IN_PROGRESS', 'In Progress'),
