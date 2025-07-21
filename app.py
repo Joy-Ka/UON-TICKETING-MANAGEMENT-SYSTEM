@@ -63,16 +63,20 @@ def create_app():
 # Create app instance
 app = create_app()
 
-import routes  # Import routes to register them with the app
-
 # User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     from models import User
     return User.query.get(int(user_id))
 
-# Create database tables
+# Create database tables and initialize data
 with app.app_context():
     import models
     db.create_all()
     logging.info("Database tables created successfully")
+    
+    # Initialize default data after tables are created
+    from utils import init_default_data
+    init_default_data()
+
+import routes  # Import routes to register them with the app

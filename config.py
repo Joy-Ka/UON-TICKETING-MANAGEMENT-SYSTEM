@@ -36,11 +36,21 @@ class LocalConfig(Config):
 class ReplitConfig(Config):
     """Replit environment configuration"""
     DEBUG = True
-    # Use SQLite for Replit environment (easier setup)
+    # Use PostgreSQL for Replit environment (Replit's native database)
+    # Falls back to SQLite if no DATABASE_URL is provided
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///uon_ticketing.db'
     # Bind to 0.0.0.0 for Replit accessibility
     HOST = '0.0.0.0'
     PORT = 5000
+    
+    # PostgreSQL specific configuration for better performance
+    if os.environ.get('DATABASE_URL') and 'postgresql' in os.environ.get('DATABASE_URL', ''):
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_recycle": 300,
+            "pool_pre_ping": True,
+            "pool_size": 10,
+            "max_overflow": 20
+        }
 
 def get_config():
     """Return appropriate configuration based on environment"""
