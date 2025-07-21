@@ -64,7 +64,7 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white h-100">
+            <div class="card dashboard-card-total h-100 text-white rounded-3 p-3">
                 <div class="card-body text-center">
                     <i class="fas fa-ticket-alt fs-2 mb-2"></i>
                     <h3 class="mb-0">{{ stats.total }}</h3>
@@ -74,7 +74,7 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-success text-white h-100">
+            <div class="card dashboard-card-resolved h-100 text-white rounded-3 p-3">
                 <div class="card-body text-center">
                     <i class="fas fa-check-circle fs-2 mb-2"></i>
                     <h3 class="mb-0">{{ stats.resolved + stats.closed }}</h3>
@@ -84,7 +84,7 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white h-100">
+            <div class="card dashboard-card-inprogress h-100 text-white rounded-3 p-3">
                 <div class="card-body text-center">
                     <i class="fas fa-clock fs-2 mb-2"></i>
                     <h3 class="mb-0">{{ stats.open + stats.in_progress }}</h3>
@@ -94,7 +94,7 @@
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card bg-danger text-white h-100">
+            <div class="card dashboard-card-urgent h-100 text-white rounded-3 p-3">
                 <div class="card-body text-center">
                     <i class="fas fa-fire fs-2 mb-2"></i>
                     <h3 class="mb-0">{{ stats.urgent }}</h3>
