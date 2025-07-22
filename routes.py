@@ -595,27 +595,39 @@ def reports():
                     staff_tickets.append(ticket)
             
             # Update stats based on staff filter
-            filtered_stats = {
+            filtered_stats = type('Stats', (), {
                 'total_tickets': len(staff_tickets),
                 'open_tickets': len([t for t in staff_tickets if t.status == 'OPEN']),
                 'in_progress_tickets': len([t for t in staff_tickets if t.status == 'IN_PROGRESS']),
                 'resolved_tickets': len([t for t in staff_tickets if t.status == 'RESOLVED']),
                 'closed_tickets': len([t for t in staff_tickets if t.status == 'CLOSED']),
                 'urgent_tickets': len([t for t in staff_tickets if t.priority == 'URGENT']),
-                'overdue_tickets': len([t for t in staff_tickets if t.is_overdue])
-            }
+                'overdue_tickets': len([t for t in staff_tickets if t.is_overdue]),
+                'total': len(staff_tickets),
+                'open': len([t for t in staff_tickets if t.status == 'OPEN']),
+                'in_progress': len([t for t in staff_tickets if t.status == 'IN_PROGRESS']),
+                'resolved': len([t for t in staff_tickets if t.status == 'RESOLVED']),
+                'closed': len([t for t in staff_tickets if t.status == 'CLOSED']),
+                'urgent': len([t for t in staff_tickets if t.priority == 'URGENT'])
+            })()
         elif department_filter:
             # Update stats for department filter only
             all_dept_tickets = base_query.all()
-            filtered_stats = {
+            filtered_stats = type('Stats', (), {
                 'total_tickets': len(all_dept_tickets),
                 'open_tickets': len([t for t in all_dept_tickets if t.status == 'OPEN']),
                 'in_progress_tickets': len([t for t in all_dept_tickets if t.status == 'IN_PROGRESS']),
                 'resolved_tickets': len([t for t in all_dept_tickets if t.status == 'RESOLVED']),
                 'closed_tickets': len([t for t in all_dept_tickets if t.status == 'CLOSED']),
                 'urgent_tickets': len([t for t in all_dept_tickets if t.priority == 'URGENT']),
-                'overdue_tickets': len([t for t in all_dept_tickets if t.is_overdue])
-            }
+                'overdue_tickets': len([t for t in all_dept_tickets if t.is_overdue]),
+                'total': len(all_dept_tickets),
+                'open': len([t for t in all_dept_tickets if t.status == 'OPEN']),
+                'in_progress': len([t for t in all_dept_tickets if t.status == 'IN_PROGRESS']),
+                'resolved': len([t for t in all_dept_tickets if t.status == 'RESOLVED']),
+                'closed': len([t for t in all_dept_tickets if t.status == 'CLOSED']),
+                'urgent': len([t for t in all_dept_tickets if t.priority == 'URGENT'])
+            })()
     
     stats = filtered_stats
     monthly_data = get_monthly_ticket_data()
