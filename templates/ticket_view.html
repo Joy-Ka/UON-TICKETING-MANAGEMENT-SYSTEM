@@ -184,7 +184,7 @@
                         {% endif %}
                         {% endif %}
                         
-                        {% if current_user.role == 'admin' or ticket.created_by_id == current_user.id %}
+                        {% if current_user.role == 'admin' or ticket.created_by_id == current_user.id or current_user.role == 'tech' %}
                         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal">
                             <i class="fas fa-edit me-2"></i>Update Status
                         </button>
@@ -317,7 +317,7 @@
 </div>
 
 <!-- Status Update Modal -->
-{% if current_user.role == 'admin' or ticket.created_by_id == current_user.id %}
+{% if current_user.role == 'admin' or ticket.created_by_id == current_user.id or current_user.role == 'tech' %}
 <div class="modal fade" id="statusModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
