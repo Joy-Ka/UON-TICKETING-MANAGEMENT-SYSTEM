@@ -156,7 +156,7 @@
                     <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" class="btn btn-success btn-sm w-100 mb-2">
                         <i class="fas fa-hand-paper me-2"></i>Take This Ticket
                     </a>
-                    {% elif current_user.role in ['tech', 'admin'] and current_user.id not in [tech.id for tech in ticket.assigned_techs] %}
+                    {% elif current_user.role in ['tech', 'admin'] and current_user.id not in ticket.assigned_techs|map(attribute='id')|list %}
                     <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" class="btn btn-success btn-sm w-100 mb-2">
                         <i class="fas fa-hand-paper me-2"></i>Join This Ticket
                     </a>
