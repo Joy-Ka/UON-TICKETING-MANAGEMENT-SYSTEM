@@ -4,6 +4,7 @@ from flask import current_app
 from flask_mail import Message
 from app import mail, db
 from models import Notification, User
+from sqlalchemy import text
 import logging
 
 
@@ -309,35 +310,44 @@ def get_monthly_ticket_data():
 def migrate_database():
     """Add missing columns to existing database tables"""
     try:
+        # Use text() for raw SQL execution with SQLAlchemy 2.x
+        from sqlalchemy import text
+        
         # Check if location and unit columns exist in tickets table
-        result = db.engine.execute("PRAGMA table_info(tickets)")
-        columns = [row[1] for row in result]
-        
-        if 'location' not in columns:
-            db.engine.execute("ALTER TABLE tickets ADD COLUMN location VARCHAR(100)")
-            logging.info("Added location column to tickets table")
-        
-        if 'unit' not in columns:
-            db.engine.execute("ALTER TABLE tickets ADD COLUMN unit VARCHAR(50)")
-            logging.info("Added unit column to tickets table")
+        with db.engine.connect() as connection:
+            result = connection.execute(text("PRAGMA table_info(tickets)"))
+            columns = [row[1] for row in result]
             
-        if 'due_date' not in columns:
-            db.engine.execute("ALTER TABLE tickets ADD COLUMN due_date DATETIME")
-            logging.info("Added due_date column to tickets table")
+            if 'location' not in columns:
+                connection.execute(text("ALTER TABLE tickets ADD COLUMN location VARCHAR(100)"))
+                connection.commit()
+                logging.info("Added location column to tickets table")
             
-        # Check if assigned_to_ids column exists (replacing assigned_to_id)
-        if 'assigned_to_ids' not in columns:
-            db.engine.execute("ALTER TABLE tickets ADD COLUMN assigned_to_ids TEXT")
-            logging.info("Added assigned_to_ids column to tickets table")
-            
-            # Migrate data from assigned_to_id to assigned_to_ids if assigned_to_id exists
-            if 'assigned_to_id' in columns:
-                db.engine.execute("""
-                    UPDATE tickets 
-                    SET assigned_to_ids = CAST(assigned_to_id AS TEXT) 
-                    WHERE assigned_to_id IS NOT NULL
-                """)
-                logging.info("Migrated assigned_to_id data to assigned_to_ids")
+            if 'unit' not in columns:
+                connection.execute(text("ALTER TABLE tickets ADD COLUMN unit VARCHAR(50)"))
+                connection.commit()
+                logging.info("Added unit column to tickets table")
+                
+            if 'due_date' not in columns:
+                connection.execute(text("ALTER TABLE tickets ADD COLUMN due_date DATETIME"))
+                connection.commit()
+                logging.info("Added due_date column to tickets table")
+                
+            # Check if assigned_to_ids column exists (replacing assigned_to_id)
+            if 'assigned_to_ids' not in columns:
+                connection.execute(text("ALTER TABLE tickets ADD COLUMN assigned_to_ids TEXT"))
+                connection.commit()
+                logging.info("Added assigned_to_ids column to tickets table")
+                
+                # Migrate data from assigned_to_id to assigned_to_ids if assigned_to_id exists
+                if 'assigned_to_id' in columns:
+                    connection.execute(text("""
+                        UPDATE tickets 
+                        SET assigned_to_ids = CAST(assigned_to_id AS TEXT) 
+                        WHERE assigned_to_id IS NOT NULL
+                    """))
+                    connection.commit()
+                    logging.info("Migrated assigned_to_id data to assigned_to_ids")
                 
     except Exception as e:
         logging.error(f"Database migration error: {e}")
