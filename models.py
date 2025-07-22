@@ -81,6 +81,12 @@ class Ticket(db.Model):
         return User.query.filter(User.id.in_(ids)).all()
     
     @property
+    def assignee(self):
+        """Get primary assignee for backward compatibility"""
+        techs = self.assigned_techs
+        return techs[0] if techs else None
+    
+    @property
     def is_overdue(self):
         """Check if ticket is overdue"""
         if not self.due_date:

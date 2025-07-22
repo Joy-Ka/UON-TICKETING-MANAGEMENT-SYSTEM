@@ -126,8 +126,8 @@
                                         </span>
                                     </td>
                                     <td>
-                                        {% if ticket.assignee %}
-                                            {{ ticket.assignee.full_name }}
+                                        {% if ticket.assigned_techs %}
+                                            {% for tech in ticket.assigned_techs %}{{ tech.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}
                                         {% else %}
                                             <span class="text-muted">Unassigned</span>
                                         {% endif %}

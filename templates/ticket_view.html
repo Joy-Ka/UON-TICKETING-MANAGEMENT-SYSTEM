@@ -63,14 +63,16 @@
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-muted mb-2">Assigned to:</h6>
-                            {% if ticket.assignee %}
-                            <div class="d-flex align-items-center">
+                            {% if ticket.assigned_techs %}
+                            {% for tech in ticket.assigned_techs %}
+                            <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-user-check fs-4 text-success me-2"></i>
                                 <div>
-                                    <strong>{{ ticket.assignee.full_name }}</strong><br>
-                                    <small class="text-muted">{{ ticket.assignee.email }}</small>
+                                    <strong>{{ tech.full_name }}</strong><br>
+                                    <small class="text-muted">{{ tech.email }}</small>
                                 </div>
                             </div>
+                            {% endfor %}
                             {% else %}
                             <div class="text-muted">
                                 <i class="fas fa-user-slash me-2"></i>Not assigned
@@ -150,9 +152,13 @@
                     <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
                 </div>
                 <div class="card-body">
-                    {% if not ticket.assigned_to_id %}
+                    {% if not ticket.assigned_to_ids %}
                     <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" class="btn btn-success btn-sm w-100 mb-2">
                         <i class="fas fa-hand-paper me-2"></i>Take This Ticket
+                    </a>
+                    {% elif current_user.role in ['tech', 'admin'] and current_user.id not in [tech.id for tech in ticket.assigned_techs] %}
+                    <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" class="btn btn-success btn-sm w-100 mb-2">
+                        <i class="fas fa-hand-paper me-2"></i>Join This Ticket
                     </a>
                     {% endif %}
                     
@@ -161,9 +167,9 @@
                             <i class="fas fa-edit me-2"></i>Update Status
                         </button>
                         
-                        {% if current_user.role == 'admin' or (ticket.assigned_to_id and ticket.assigned_to_id != current_user.id) %}
+                        {% if current_user.role == 'admin' or ticket.assigned_techs %}
                         <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#assignModal">
-                            <i class="fas fa-user-tag me-2"></i>Reassign Ticket
+                            <i class="fas fa-user-tag me-2"></i>Assign Additional Tech
                         </button>
                         {% endif %}
                     </div>
@@ -189,13 +195,13 @@
                             </div>
                         </div>
                         
-                        {% if ticket.assigned_to_id %}
+                        {% if ticket.assigned_techs %}
                         <div class="timeline-item">
                             <div class="timeline-marker bg-info"></div>
                             <div class="timeline-content">
                                 <h6 class="mb-1">Assigned</h6>
                                 <small class="text-muted">
-                                    to {{ ticket.assignee.full_name }}
+                                    to {% for tech in ticket.assigned_techs %}{{ tech.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}
                                 </small>
                             </div>
                         </div>

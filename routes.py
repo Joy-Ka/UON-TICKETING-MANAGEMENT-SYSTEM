@@ -254,12 +254,13 @@ def view_ticket(ticket_id):
     if current_user.role == 'user' and ticket.created_by_id != current_user.id:
         abort(403)
     elif current_user.role == 'tech':
-        # Tech users can only see tickets assigned to them
+        # Tech users can see tickets assigned to them or unassigned tickets
         is_assigned = False
         if ticket.assigned_to_ids:
             assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
             is_assigned = current_user.id in assigned_ids
-        if not is_assigned:
+        is_unassigned = ticket.assigned_to_ids is None
+        if not (is_assigned or is_unassigned):
             abort(403)
 
     comments = TicketComment.query.filter_by(ticket_id=ticket_id).order_by(TicketComment.created_at.asc()).all()
@@ -289,12 +290,13 @@ def add_comment(ticket_id):
     if current_user.role == 'user' and ticket.created_by_id != current_user.id:
         abort(403)
     elif current_user.role == 'tech':
-        # Tech users can only comment on tickets assigned to them
+        # Tech users can comment on tickets assigned to them or unassigned tickets
         is_assigned = False
         if ticket.assigned_to_ids:
             assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
             is_assigned = current_user.id in assigned_ids
-        if not is_assigned:
+        is_unassigned = ticket.assigned_to_ids is None
+        if not (is_assigned or is_unassigned):
             abort(403)
 
     form = CommentForm()

@@ -16,7 +16,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Filters -->
     <div class="row mb-4">
         <div class="col-12">
@@ -61,7 +61,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Tickets Table -->
     <div class="row">
         <div class="col-12">
@@ -122,12 +122,12 @@
                                         </span>
                                     </td>
                                     <td>
-                                        {% if ticket.assignee %}
-                                        {{ ticket.assignee.full_name }}
-                                        {% else %}
-                                        <span class="text-muted">Unassigned</span>
-                                        {% endif %}
-                                    </td>
+                                {% if ticket.assigned_techs %}
+                                    {% for tech in ticket.assigned_techs %}{{ tech.full_name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                                {% else %}
+                                    Unassigned
+                                {% endif %}
+                            </td>
                                     <td>
                                         {{ ticket.created_at.strftime('%m/%d/%Y') }}<br>
                                         <small class="text-muted">{{ ticket.created_at.strftime('%H:%M') }}</small>
@@ -159,7 +159,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Pagination -->
                     {% if tickets.pages > 1 %}
                     <div class="d-flex justify-content-between align-items-center mt-4">
@@ -177,7 +177,7 @@
                                     </a>
                                 </li>
                                 {% endif %}
-                                
+
                                 {% for page_num in tickets.iter_pages() %}
                                 {% if page_num %}
                                 {% if page_num != tickets.page %}
@@ -197,7 +197,7 @@
                                 </li>
                                 {% endif %}
                                 {% endfor %}
-                                
+
                                 {% if tickets.has_next %}
                                 <li class="page-item">
                                     <a class="page-link" href="{{ url_for('list_tickets', page=tickets.next_num, **request.args) }}">
@@ -209,7 +209,7 @@
                         </nav>
                     </div>
                     {% endif %}
-                    
+
                     {% else %}
                     <div class="text-center py-5">
                         <i class="fas fa-search fs-1 text-muted mb-3"></i>
