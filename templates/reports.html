@@ -9,13 +9,13 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-chart-bar me-2"></i>Reports & Analytics</h2>
                 <div>
-                    <a href="{{ url_for('print_reports', type='daily') }}" class="btn btn-outline-primary me-2" target="_blank">
+                    <a href="{{ url_for('print_reports', type='daily', department=current_department, staff=current_staff) }}" class="btn btn-outline-primary me-2" target="_blank">
                         <i class="fas fa-print me-1"></i>Daily Report
                     </a>
-                    <a href="{{ url_for('print_reports', type='weekly') }}" class="btn btn-outline-primary me-2" target="_blank">
+                    <a href="{{ url_for('print_reports', type='weekly', department=current_department, staff=current_staff) }}" class="btn btn-outline-primary me-2" target="_blank">
                         <i class="fas fa-print me-1"></i>Weekly Report
                     </a>
-                    <a href="{{ url_for('print_reports', type='monthly') }}" class="btn btn-outline-primary" target="_blank">
+                    <a href="{{ url_for('print_reports', type='monthly', department=current_department, staff=current_staff) }}" class="btn btn-outline-primary" target="_blank">
                         <i class="fas fa-print me-1"></i>Monthly Report
                     </a>
                 </div>
