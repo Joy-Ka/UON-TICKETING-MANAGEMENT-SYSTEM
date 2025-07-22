@@ -6,14 +6,14 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0"><i class="fas fa-plus me-2"></i>Create New Support Ticket</h4>
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-ticket-alt me-2"></i>Create Support Ticket</h3>
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="row">
                             <div class="col-md-8 mb-3">
                                 {{ form.title.label(class="form-label") }}
@@ -25,8 +25,19 @@
                                 {% endif %}
                                 <div class="form-text">Provide a clear, descriptive title for your issue</div>
                             </div>
-                            
                             <div class="col-md-4 mb-3">
+                                {{ form.priority.label(class="form-label") }}
+                                {{ form.priority(class="form-select" + (" is-invalid" if form.priority.errors else "")) }}
+                                {% if form.priority.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.priority.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 {{ form.category.label(class="form-label") }}
                                 {{ form.category(class="form-select" + (" is-invalid" if form.category.errors else "")) }}
                                 {% if form.category.errors %}
@@ -35,11 +46,25 @@
                                 </div>
                                 {% endif %}
                             </div>
+
+                            {% if current_user.department and current_user.department.code == 'SWA' %}
+                            <div class="col-md-6 mb-3">
+                                {{ form.unit.label(class="form-label") }}
+                                {{ form.unit(class="form-select", id="unitSelect", onchange="updateLocationOptions()") }}
+                            </div>
+                            {% endif %}
                         </div>
-                        
+
+                        {% if current_user.department %}
+                        <div class="mb-3">
+                            {{ form.location.label(class="form-label") }}
+                            {{ form.location(class="form-select", id="locationSelect") }}
+                        </div>
+                        {% endif %}
+
                         <div class="mb-3">
                             {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows="5" + (" is-invalid" if form.description.errors else "")) }}
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="5") }}
                             {% if form.description.errors %}
                             <div class="invalid-feedback">
                                 {% for error in form.description.errors %}{{ error }}{% endfor %}
@@ -55,24 +80,7 @@
                                 </ul>
                             </div>
                         </div>
-                        
-                        <div class="mb-4">
-                            {{ form.priority.label(class="form-label") }}
-                            {{ form.priority(class="form-select" + (" is-invalid" if form.priority.errors else "")) }}
-                            {% if form.priority.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.priority.errors %}{{ error }}{% endfor %}
-                            </div>
-                            {% endif %}
-                            <div class="form-text">
-                                <strong>Priority Guidelines:</strong><br>
-                                <span class="badge bg-danger me-1">URGENT</span> System down, critical business impact<br>
-                                <span class="badge bg-warning me-1">HIGH</span> Significant impact on work<br>
-                                <span class="badge bg-info me-1">MEDIUM</span> Moderate impact, workaround available<br>
-                                <span class="badge bg-success me-1">LOW</span> Minor issue, no immediate impact
-                            </div>
-                        </div>
-                        
+
                         <div class="mb-3">
                             {{ form.attachments.label(class="form-label") }}
                             <div class="file-upload-area">
@@ -86,7 +94,7 @@
                                 <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="d-flex justify-content-between">
                             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
@@ -98,97 +106,36 @@
                     </form>
                 </div>
             </div>
-            
-            <!-- Help Card -->
+
+            <!-- Priority Guidelines Card -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Need Help?</h6>
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Priority Guidelines</h6>
                 </div>
                 <div class="card-body">
-                    <p class="mb-2"><strong>Before submitting a ticket, please try:</strong></p>
-                    <ul class="small">
-                        <li>Restarting your computer or application</li>
-                        <li>Checking if others are experiencing the same issue</li>
-                        <li>Consulting available documentation or user guides</li>
-                    </ul>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Priority Levels:</strong></p>
+                            <ul class="small mb-3">
+                                <li><span class="badge bg-danger me-1">URGENT</span> System down, critical business impact</li>
+                                <li><span class="badge bg-warning me-1">HIGH</span> Significant impact on work</li>
+                                <li><span class="badge bg-info me-1">MEDIUM</span> Moderate impact, workaround available</li>
+                                <li><span class="badge bg-success me-1">LOW</span> Minor issue, no immediate impact</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2"><strong>Before submitting a ticket:</strong></p>
+                            <ul class="small">
+                                <li>Try restarting your computer or application</li>
+                                <li>Check if others are experiencing the same issue</li>
+                                <li>Consult available documentation or user guides</li>
+                            </ul>
+                        </div>
+                    </div>
                     <p class="small text-muted mb-0">
-                        <i class="fas fa-info-circle me-1"></i>
+                        <i class="fas fa-envelope me-1"></i>
                         You will receive email notifications about updates to your ticket.
                     </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-{% extends "base.html" %}
-
-{% block title %}Create Ticket - ICT Ticketing System{% endblock %}
-
-{% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-ticket-alt me-2"></i>Create Support Ticket</h3>
-                </div>
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-                        
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                {{ form.title.label(class="form-label") }}
-                                {{ form.title(class="form-control") }}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                {{ form.priority.label(class="form-label") }}
-                                {{ form.priority(class="form-select") }}
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.category.label(class="form-label") }}
-                                {{ form.category(class="form-select") }}
-                            </div>
-                            
-                            {% if current_user.department and current_user.department.code == 'SWA' %}
-                            <div class="col-md-6 mb-3">
-                                {{ form.unit.label(class="form-label") }}
-                                {{ form.unit(class="form-select", id="unitSelect", onchange="updateLocationOptions()") }}
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        {% if current_user.department %}
-                        <div class="mb-3">
-                            {{ form.location.label(class="form-label") }}
-                            {{ form.location(class="form-select", id="locationSelect") }}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-3">
-                            {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows="5") }}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.attachments.label(class="form-label") }}
-                            {{ form.attachments(class="form-control", multiple=True) }}
-                            <div class="form-text">You can attach multiple files (images, documents, spreadsheets)</div>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-2"></i>Submit Ticket
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
@@ -201,15 +148,15 @@
 function updateLocationOptions() {
     const unitSelect = document.getElementById('unitSelect');
     const locationSelect = document.getElementById('locationSelect');
-    
+
     if (!unitSelect || !locationSelect) return;
-    
+
     // Clear existing options
     locationSelect.innerHTML = '<option value="">Select Location</option>';
-    
+
     const selectedUnit = unitSelect.value;
     let locations = [];
-    
+
     if (selectedUnit === 'USHR') {
         locations = [
             'Hall 4', 'Hall 5', 'Hall 6', 'Hall 7', 'Hall 8', 'Hall 9',
@@ -221,7 +168,7 @@ function updateLocationOptions() {
             'Kitchen', 'Sports', 'Internal Audit'
         ];
     }
-    
+
     locations.forEach(location => {
         const option = document.createElement('option');
         option.value = location;
@@ -234,11 +181,11 @@ function updateLocationOptions() {
 document.addEventListener('DOMContentLoaded', function() {
     const deptCode = '{{ current_user.department.code if current_user.department else "" }}';
     const locationSelect = document.getElementById('locationSelect');
-    
+
     if (!locationSelect) return;
-    
+
     let locations = [];
-    
+
     if (deptCode === 'UHS') {
         locations = [
             'Staff Clinic', 'Student Clinic', 'CMO', 'Laboratory', 'Sickbay',
@@ -249,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Block A', 'Block B', 'Block C', 'Server Room', 'Auditorium', 'Security Office'
         ];
     }
-    
+
     if (locations.length > 0) {
         locations.forEach(location => {
             const option = document.createElement('option');
