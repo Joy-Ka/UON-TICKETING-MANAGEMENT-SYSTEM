@@ -164,7 +164,7 @@
                     
                     <div class="d-grid gap-2">
                         {% if current_user.role == 'tech' %}
-                        <!-- Tech staff quick status updates -->
+                        <!-- Tech staff quick status updates - show for assigned or unassigned tickets -->
                         {% if ticket.status == 'OPEN' %}
                         <form method="POST" action="{{ url_for('update_ticket_status', ticket_id=ticket.id) }}" style="display: inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
