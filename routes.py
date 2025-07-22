@@ -620,10 +620,13 @@ def reports():
     stats = filtered_stats
     monthly_data = get_monthly_ticket_data()
 
+    # Get all departments and tech users for dropdowns
+    departments = Department.query.all()
+    tech_users = User.query.filter_by(role='tech', is_active=True).all()
+
     # Get department statistics with explicit joins to avoid ambiguity
     department_stats = []
     if not department_filter:  # Only show department stats when not filtering by department
-        departments = Department.query.all()
         for dept in departments:
             # Use explicit join condition to avoid AmbiguousForeignKeysError
             tickets_query = db.session.query(Ticket).join(
@@ -670,9 +673,6 @@ def reports():
     # Get technical staff performance data
     tech_stats = []
     if not staff_filter:  # Show all tech stats when not filtering by staff
-        tech_users_query = User.query.filter_by(role='tech', is_active=True)
-        tech_users = tech_users_query.all()
-        
         for tech in tech_users:
             # Get tickets assigned to this tech user
             assigned_tickets = []
