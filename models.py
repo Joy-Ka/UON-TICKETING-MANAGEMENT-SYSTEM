@@ -23,7 +23,6 @@ class User(UserMixin, db.Model):
     # Relationships
     department = db.relationship('Department', backref='users')
     created_tickets = db.relationship('Ticket', foreign_keys='Ticket.created_by_id', backref='creator')
-    assigned_tickets = db.relationship('Ticket', foreign_keys='Ticket.assigned_to_id', backref='assignee')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

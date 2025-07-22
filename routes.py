@@ -150,8 +150,13 @@ def dashboard():
 
     elif current_user.role == 'tech':
         # Technical staff dashboard
-        my_tickets = Ticket.query.filter_by(assigned_to_id=current_user.id).all()
-        unassigned_tickets = Ticket.query.filter_by(assigned_to_id=None, status='OPEN').all()
+        # Get tickets assigned to current tech user
+        my_tickets = []
+        for ticket in Ticket.query.filter(Ticket.assigned_to_ids.isnot(None)).all():
+            if str(current_user.id) in ticket.assigned_to_ids.split(','):
+                my_tickets.append(ticket)
+        
+        unassigned_tickets = Ticket.query.filter_by(assigned_to_ids=None, status='OPEN').all()
         unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
         return render_template('dashboard_tech.html',
                              stats=stats,
@@ -246,9 +251,14 @@ def view_ticket(ticket_id):
     # Check permissions
     if current_user.role == 'user' and ticket.created_by_id != current_user.id:
         abort(403)
-    elif current_user.role == 'tech' and ticket.assigned_to_id != current_user.id:
+    elif current_user.role == 'tech':
         # Tech users can only see tickets assigned to them
-        abort(403)
+        is_assigned = False
+        if ticket.assigned_to_ids:
+            assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+            is_assigned = current_user.id in assigned_ids
+        if not is_assigned:
+            abort(403)
 
     comments = TicketComment.query.filter_by(ticket_id=ticket_id).order_by(TicketComment.created_at.asc()).all()
 
@@ -276,9 +286,14 @@ def add_comment(ticket_id):
     # Check permissions
     if current_user.role == 'user' and ticket.created_by_id != current_user.id:
         abort(403)
-    elif current_user.role == 'tech' and ticket.assigned_to_id != current_user.id:
+    elif current_user.role == 'tech':
         # Tech users can only comment on tickets assigned to them
-        abort(403)
+        is_assigned = False
+        if ticket.assigned_to_ids:
+            assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+            is_assigned = current_user.id in assigned_ids
+        if not is_assigned:
+            abort(403)
 
     form = CommentForm()
     if form.validate_on_submit():
@@ -309,13 +324,22 @@ def assign_ticket(ticket_id):
     form = AssignTicketForm()
 
     if form.validate_on_submit():
-        ticket.assigned_to_id = form.assigned_to_id.data
+        # Add new assignment to existing assignments
+        new_tech_id = form.assigned_to_id.data
+        if ticket.assigned_to_ids:
+            assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+            if new_tech_id not in assigned_ids:
+                assigned_ids.append(new_tech_id)
+                ticket.assigned_to_ids = ','.join(map(str, assigned_ids))
+        else:
+            ticket.assigned_to_ids = str(new_tech_id)
+        
         if ticket.status == 'OPEN':
             ticket.status = 'IN_PROGRESS'
         db.session.commit()
 
         # Notify assigned user and ticket creator
-        assignee = User.query.get(form.assigned_to_id.data)
+        assignee = User.query.get(new_tech_id)
         message = f"Ticket #{ticket.id} has been assigned to {assignee.full_name}"
         notify_ticket_update(ticket, message, exclude_user_id=current_user.id)
 
@@ -359,8 +383,20 @@ def take_ticket(ticket_id):
 
     ticket = Ticket.query.get_or_404(ticket_id)
 
-    if ticket.assigned_to_id is None:
-        ticket.assigned_to_id = current_user.id
+    # Check if current user is already assigned
+    is_already_assigned = False
+    if ticket.assigned_to_ids:
+        assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+        is_already_assigned = current_user.id in assigned_ids
+    
+    if not is_already_assigned:
+        if ticket.assigned_to_ids:
+            assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+            assigned_ids.append(current_user.id)
+            ticket.assigned_to_ids = ','.join(map(str, assigned_ids))
+        else:
+            ticket.assigned_to_ids = str(current_user.id)
+        
         if ticket.status == 'OPEN':
             ticket.status = 'IN_PROGRESS'
         db.session.commit()
@@ -371,7 +407,7 @@ def take_ticket(ticket_id):
 
         flash('Ticket assigned to you successfully!', 'success')
     else:
-        flash('Ticket is already assigned to someone else', 'warning')
+        flash('Ticket is already assigned to you', 'info')
 
     return redirect(url_for('view_ticket', ticket_id=ticket_id))
 
@@ -389,10 +425,26 @@ def list_tickets():
         query = query.filter_by(created_by_id=current_user.id)
     elif current_user.role == 'tech':
         # Show assigned tickets and unassigned tickets
-        query = query.filter(
-            (Ticket.assigned_to_id == current_user.id) |
-            (Ticket.assigned_to_id == None)
-        )
+        # This is a simplified approach - in production you'd want to use proper SQL for better performance
+        all_tickets = Ticket.query.all()
+        filtered_tickets = []
+        for ticket in all_tickets:
+            is_assigned_to_me = False
+            if ticket.assigned_to_ids:
+                assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+                is_assigned_to_me = current_user.id in assigned_ids
+            is_unassigned = ticket.assigned_to_ids is None
+            
+            if is_assigned_to_me or is_unassigned:
+                filtered_tickets.append(ticket)
+        
+        # Convert back to query-like object for pagination
+        from sqlalchemy import or_
+        ticket_ids = [t.id for t in filtered_tickets]
+        if ticket_ids:
+            query = query.filter(Ticket.id.in_(ticket_ids))
+        else:
+            query = query.filter(Ticket.id == -1)  # No results
 
     # Apply filters
     if status_filter:
@@ -561,7 +613,11 @@ def reports():
         if staff_filter and staff_filter != str(tech.id):
             continue
 
-        assigned_tickets = Ticket.query.filter_by(assigned_to_id=tech.id).all()
+        # Get tickets assigned to this tech user
+        assigned_tickets = []
+        for ticket in Ticket.query.filter(Ticket.assigned_to_ids.isnot(None)).all():
+            if ticket.assigned_to_ids and str(tech.id) in ticket.assigned_to_ids.split(','):
+                assigned_tickets.append(ticket)
         total_assigned = len(assigned_tickets)
         active_tickets = len([t for t in assigned_tickets if t.status in ['OPEN', 'IN_PROGRESS']])
         resolved_tickets = len([t for t in assigned_tickets if t.status in ['RESOLVED', 'CLOSED']])
@@ -894,15 +950,17 @@ def close_ticket(ticket_id):
     ticket.closed_at = datetime.utcnow()
     db.session.commit()
 
-    # Notify assignee if exists
-    if ticket.assigned_to_id:
+    # Notify assignees if exist
+    if ticket.assigned_to_ids:
         from utils import create_notification
-        create_notification(
-            user_id=ticket.assigned_to_id,
-            title='Ticket Closed',
-            message=f'Ticket "{ticket.title}" has been closed by the requester.',
-            ticket_id=ticket.id
-        )
+        assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+        for assignee_id in assigned_ids:
+            create_notification(
+                user_id=assignee_id,
+                title='Ticket Closed',
+                message=f'Ticket "{ticket.title}" has been closed by the requester.',
+                ticket_id=ticket.id
+            )
 
     flash('Ticket closed successfully!', 'success')
     return redirect(url_for('view_ticket', ticket_id=ticket_id))
