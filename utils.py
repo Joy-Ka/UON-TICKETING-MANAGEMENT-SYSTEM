@@ -306,6 +306,42 @@ def get_monthly_ticket_data():
 
     return data
 
+def migrate_database():
+    """Add missing columns to existing database tables"""
+    try:
+        # Check if location and unit columns exist in tickets table
+        result = db.engine.execute("PRAGMA table_info(tickets)")
+        columns = [row[1] for row in result]
+        
+        if 'location' not in columns:
+            db.engine.execute("ALTER TABLE tickets ADD COLUMN location VARCHAR(100)")
+            logging.info("Added location column to tickets table")
+        
+        if 'unit' not in columns:
+            db.engine.execute("ALTER TABLE tickets ADD COLUMN unit VARCHAR(50)")
+            logging.info("Added unit column to tickets table")
+            
+        if 'due_date' not in columns:
+            db.engine.execute("ALTER TABLE tickets ADD COLUMN due_date DATETIME")
+            logging.info("Added due_date column to tickets table")
+            
+        # Check if assigned_to_ids column exists (replacing assigned_to_id)
+        if 'assigned_to_ids' not in columns:
+            db.engine.execute("ALTER TABLE tickets ADD COLUMN assigned_to_ids TEXT")
+            logging.info("Added assigned_to_ids column to tickets table")
+            
+            # Migrate data from assigned_to_id to assigned_to_ids if assigned_to_id exists
+            if 'assigned_to_id' in columns:
+                db.engine.execute("""
+                    UPDATE tickets 
+                    SET assigned_to_ids = CAST(assigned_to_id AS TEXT) 
+                    WHERE assigned_to_id IS NOT NULL
+                """)
+                logging.info("Migrated assigned_to_id data to assigned_to_ids")
+                
+    except Exception as e:
+        logging.error(f"Database migration error: {e}")
+
 def init_default_data():
     """Initialize default departments and admin user"""
     from models import Department, User

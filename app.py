@@ -75,6 +75,10 @@ with app.app_context():
     db.create_all()
     logging.info("Database tables created successfully")
     
+    # Run database migrations for existing tables
+    from utils import migrate_database
+    migrate_database()
+    
     # Initialize default data after tables are created
     from utils import init_default_data
     init_default_data()
