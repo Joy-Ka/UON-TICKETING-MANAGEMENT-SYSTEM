@@ -321,7 +321,7 @@ def add_comment(ticket_id):
 @app.route('/ticket/<int:ticket_id>/assign', methods=['POST'])
 @login_required
 def assign_ticket(ticket_id):
-    if current_user.role not in ['tech', 'admin']:
+    if current_user.role != 'admin':
         abort(403)
 
     ticket = Ticket.query.get_or_404(ticket_id)
@@ -354,10 +354,10 @@ def assign_ticket(ticket_id):
 @app.route('/ticket/<int:ticket_id>/status', methods=['POST'])
 @login_required
 def update_ticket_status(ticket_id):
-    if current_user.role not in ['tech', 'admin']:
+    ticket = Ticket.query.get_or_404(ticket_id)
+    if current_user.role != 'admin' and ticket.created_by_id != current_user.id:
         abort(403)
 
-    ticket = Ticket.query.get_or_404(ticket_id)
     form = UpdateTicketStatusForm()
 
     if form.validate_on_submit():
@@ -1071,6 +1071,32 @@ def close_ticket(ticket_id):
 
     flash('Ticket closed successfully!', 'success')
     return redirect(url_for('view_ticket', ticket_id=ticket_id))
+
+@app.route('/ticket/<int:ticket_id>/delete', methods=['POST'])
+@login_required
+def delete_ticket(ticket_id):
+    ticket = Ticket.query.get_or_404(ticket_id)
+    
+    # Check permissions - admin, or ticket creator (for tech and department users)
+    if not (current_user.role == 'admin' or 
+            (current_user.role in ['tech', 'user'] and ticket.created_by_id == current_user.id)):
+        abort(403)
+    
+    try:
+        # Delete associated records first
+        TicketComment.query.filter_by(ticket_id=ticket_id).delete()
+        Notification.query.filter_by(ticket_id=ticket_id).delete()
+        TicketAttachment.query.filter_by(ticket_id=ticket_id).delete()
+        
+        # Delete the ticket
+        db.session.delete(ticket)
+        db.session.commit()
+        
+        flash('Ticket deleted successfully!', 'success')
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete ticket'}), 500
 
 # Error handlers
 @app.errorhandler(403)

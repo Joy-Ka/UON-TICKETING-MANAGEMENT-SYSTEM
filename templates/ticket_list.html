@@ -70,9 +70,8 @@
                     {% if tickets.items %}
                     <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead class="table-light">
+                            <thead>
                                 <tr>
-                                    <th>ID</th>
                                     <th>Title</th>
                                     <th>Creator</th>
                                     {% if current_user.role in ['tech', 'admin'] %}
@@ -89,7 +88,6 @@
                             <tbody>
                                 {% for ticket in tickets.items %}
                                 <tr class="{% if ticket.priority == 'URGENT' %}table-danger{% endif %}">
-                                    <td><strong>#{{ ticket.id }}</strong></td>
                                     <td>
                                         <a href="{{ url_for('view_ticket', ticket_id=ticket.id) }}" 
                                            class="text-decoration-none fw-bold">
@@ -232,4 +230,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function deleteTicket(ticketId, ticketTitle) {
+    if (confirm(`Are you sure you want to delete ticket "${ticketTitle}"? This action cannot be undone.`)) {
+        fetch(`/ticket/${ticketId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error deleting ticket. Please try again.');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting ticket. Please try again.');
+        });
+    }
+}
+</script>
 {% endblock %}
