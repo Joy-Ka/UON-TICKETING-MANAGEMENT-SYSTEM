@@ -109,12 +109,20 @@ class MultipleAssignTicketForm(FlaskForm):
         self.tech_ids.choices = [(u.id, u.full_name) for u in tech_users]
 
 class UpdateTicketStatusForm(FlaskForm):
-    status = SelectField('Status', choices=[
-        ('OPEN', 'Open'),
-        ('IN_PROGRESS', 'In Progress'),
-        ('RESOLVED', 'Resolved'),
-        ('CLOSED', 'Closed')
-    ], validators=[DataRequired()])
+    status = SelectField('Status', choices=[], validators=[DataRequired()])
+    
+    def __init__(self, choices=None, *args, **kwargs):
+        super(UpdateTicketStatusForm, self).__init__(*args, **kwargs)
+        if choices:
+            self.status.choices = choices
+        else:
+            # Default choices for admin users
+            self.status.choices = [
+                ('OPEN', 'Open'),
+                ('IN_PROGRESS', 'In Progress'),
+                ('RESOLVED', 'Resolved'),
+                ('CLOSED', 'Closed')
+            ]
 
 class ProfileForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(max=50)])

@@ -271,7 +271,24 @@ def view_ticket(ticket_id):
 
     comment_form = CommentForm()
     assign_form = AssignTicketForm()
-    status_form = UpdateTicketStatusForm()
+    
+    # Set status form choices based on user role
+    if current_user.role == 'tech':
+        # Tech staff can only update to In Progress or Resolved
+        status_choices = [
+            ('IN_PROGRESS', 'In Progress'),
+            ('RESOLVED', 'Resolved')
+        ]
+    else:
+        # Admin and ticket creators can use all statuses
+        status_choices = [
+            ('OPEN', 'Open'),
+            ('IN_PROGRESS', 'In Progress'),
+            ('RESOLVED', 'Resolved'),
+            ('CLOSED', 'Closed')
+        ]
+    
+    status_form = UpdateTicketStatusForm(choices=status_choices)
     status_form.status.data = ticket.status
 
     return render_template('ticket_view.html',
