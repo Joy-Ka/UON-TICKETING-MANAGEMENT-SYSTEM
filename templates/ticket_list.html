@@ -144,11 +144,17 @@
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            {% if current_user.role in ['tech', 'admin'] and not ticket.assigned_to_id %}
+                                            {% if current_user.role in ['tech', 'admin'] and not ticket.assigned_to_ids %}
                                             <a href="{{ url_for('take_ticket', ticket_id=ticket.id) }}" 
                                                class="btn btn-sm btn-outline-success">
                                                 <i class="fas fa-hand-paper"></i>
                                             </a>
+                                            {% endif %}
+                                            {% if current_user.role == 'admin' or (current_user.role in ['tech', 'user'] and ticket.created_by_id == current_user.id) %}
+                                            <button onclick="deleteTicket({{ ticket.id }}, '{{ ticket.title|replace("'", "\\'") }}')" 
+                                                    class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -239,8 +245,7 @@ function deleteTicket(ticketId, ticketTitle) {
         fetch(`/ticket/${ticketId}/delete`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
+                'Content-Type': 'application/json'
             }
         })
         .then(response => {
