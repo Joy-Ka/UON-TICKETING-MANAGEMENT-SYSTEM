@@ -218,39 +218,41 @@ def notify_ticket_update(ticket, message, exclude_user_id=None):
     if ticket.creator.id != exclude_user_id:
         users_to_notify.append(ticket.creator)
 
-    # Notify assigned technician
-    if ticket.assignee and ticket.assignee.id != exclude_user_id:
-        users_to_notify.append(ticket.assignee)
+    # Notify assigned technicians
+    if ticket.assigned_to_ids:
+        assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+        for tech_id in assigned_ids:
+            if tech_id != exclude_user_id:
+                user = User.query.get(tech_id)
+                if user:  # Ensure the user exists
+                    create_notification(
+                        user_id=tech_id,
+                        title=f"Ticket Update: {ticket.title}",
+                        message=message,
+                        ticket_id=ticket.id,
+                        notification_type='SYSTEM'
+                    )
 
-    for user in users_to_notify:
-        create_notification(
-            user_id=user.id,
-            title=f"Ticket Update: {ticket.title}",
-            message=message,
-            ticket_id=ticket.id,
-            notification_type='SYSTEM'
-        )
+                     # Send email notification
+                    if user.email:
+                        subject = f"Ticket Update - #{ticket.id}"
+                        create_notification(
+                            user_id=user.id,
+                            title=subject,
+                            message=message,
+                            ticket_id=ticket.id,
+                            notification_type='EMAIL'
+                        )
 
-        # Send email notification
-        if user.email:
-            subject = f"Ticket Update - #{ticket.id}"
-            create_notification(
-                user_id=user.id,
-                title=subject,
-                message=message,
-                ticket_id=ticket.id,
-                notification_type='EMAIL'
-            )
-
-        # Send SMS notification
-        if user.phone:
-            create_notification(
-                user_id=user.id,
-                title=f"Ticket Update Notification",
-                message=message,
-                ticket_id=ticket.id,
-                notification_type='SMS'
-            )
+                    # Send SMS notification
+                    if user.phone:
+                        create_notification(
+                            user_id=user.id,
+                            title=f"Ticket Update Notification",
+                            message=message,
+                            ticket_id=ticket.id,
+                            notification_type='SMS'
+                        )
 
 def get_ticket_stats():
     """Get ticket statistics for dashboard"""
@@ -312,33 +314,33 @@ def migrate_database():
     try:
         # Use text() for raw SQL execution with SQLAlchemy 2.x
         from sqlalchemy import text
-        
+
         # Check if location and unit columns exist in tickets table
         with db.engine.connect() as connection:
             result = connection.execute(text("PRAGMA table_info(tickets)"))
             columns = [row[1] for row in result]
-            
+
             if 'location' not in columns:
                 connection.execute(text("ALTER TABLE tickets ADD COLUMN location VARCHAR(100)"))
                 connection.commit()
                 logging.info("Added location column to tickets table")
-            
+
             if 'unit' not in columns:
                 connection.execute(text("ALTER TABLE tickets ADD COLUMN unit VARCHAR(50)"))
                 connection.commit()
                 logging.info("Added unit column to tickets table")
-                
+
             if 'due_date' not in columns:
                 connection.execute(text("ALTER TABLE tickets ADD COLUMN due_date DATETIME"))
                 connection.commit()
                 logging.info("Added due_date column to tickets table")
-                
+
             # Check if assigned_to_ids column exists (replacing assigned_to_id)
             if 'assigned_to_ids' not in columns:
                 connection.execute(text("ALTER TABLE tickets ADD COLUMN assigned_to_ids TEXT"))
                 connection.commit()
                 logging.info("Added assigned_to_ids column to tickets table")
-                
+
                 # Migrate data from assigned_to_id to assigned_to_ids if assigned_to_id exists
                 if 'assigned_to_id' in columns:
                     connection.execute(text("""
@@ -348,7 +350,7 @@ def migrate_database():
                     """))
                     connection.commit()
                     logging.info("Migrated assigned_to_id data to assigned_to_ids")
-                
+
     except Exception as e:
         logging.error(f"Database migration error: {e}")
 

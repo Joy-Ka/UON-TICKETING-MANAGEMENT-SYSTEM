@@ -243,6 +243,8 @@ def create_ticket():
         flash('Ticket created successfully!', 'success')
         return redirect(url_for('view_ticket', ticket_id=ticket.id))
 
+    return render_template('ticket_create.html', form=form)
+
 @app.route('/ticket/<int:ticket_id>')
 @login_required
 def view_ticket(ticket_id):
@@ -574,64 +576,158 @@ def reports():
     # Import models to make it available in template
     import models
 
-    stats = get_ticket_stats()
+    # Get filtered stats based on department and staff filters
+    filtered_stats = get_ticket_stats()
+    if department_filter or staff_filter:
+        # Calculate filtered statistics
+        base_query = Ticket.query
+        
+        if department_filter:
+            base_query = base_query.join(User, Ticket.created_by_id == User.id).filter(User.department_id == department_filter)
+            
+        if staff_filter:
+            # Filter tickets assigned to specific staff
+            staff_tickets = []
+            for ticket in base_query.filter(Ticket.assigned_to_ids.isnot(None)).all():
+                if ticket.assigned_to_ids and str(staff_filter) in ticket.assigned_to_ids.split(','):
+                    staff_tickets.append(ticket)
+            
+            # Update stats based on staff filter
+            filtered_stats = {
+                'total_tickets': len(staff_tickets),
+                'open_tickets': len([t for t in staff_tickets if t.status == 'OPEN']),
+                'in_progress_tickets': len([t for t in staff_tickets if t.status == 'IN_PROGRESS']),
+                'resolved_tickets': len([t for t in staff_tickets if t.status == 'RESOLVED']),
+                'closed_tickets': len([t for t in staff_tickets if t.status == 'CLOSED']),
+                'urgent_tickets': len([t for t in staff_tickets if t.priority == 'URGENT']),
+                'overdue_tickets': len([t for t in staff_tickets if t.is_overdue])
+            }
+        elif department_filter:
+            # Update stats for department filter only
+            all_dept_tickets = base_query.all()
+            filtered_stats = {
+                'total_tickets': len(all_dept_tickets),
+                'open_tickets': len([t for t in all_dept_tickets if t.status == 'OPEN']),
+                'in_progress_tickets': len([t for t in all_dept_tickets if t.status == 'IN_PROGRESS']),
+                'resolved_tickets': len([t for t in all_dept_tickets if t.status == 'RESOLVED']),
+                'closed_tickets': len([t for t in all_dept_tickets if t.status == 'CLOSED']),
+                'urgent_tickets': len([t for t in all_dept_tickets if t.priority == 'URGENT']),
+                'overdue_tickets': len([t for t in all_dept_tickets if t.is_overdue])
+            }
+    
+    stats = filtered_stats
     monthly_data = get_monthly_ticket_data()
 
     # Get department statistics with explicit joins to avoid ambiguity
     department_stats = []
-    departments = Department.query.all()
+    if not department_filter:  # Only show department stats when not filtering by department
+        departments = Department.query.all()
+        for dept in departments:
+            # Use explicit join condition to avoid AmbiguousForeignKeysError
+            tickets_query = db.session.query(Ticket).join(
+                User, Ticket.created_by_id == User.id
+            ).filter(User.department_id == dept.id)
 
-    for dept in departments:
-        # Use explicit join condition to avoid AmbiguousForeignKeysError
-        tickets_query = db.session.query(Ticket).join(
-            User, Ticket.created_by_id == User.id
-        ).filter(User.department_id == dept.id)
+            total_count = tickets_query.count()
+            open_count = tickets_query.filter(Ticket.status.in_(['OPEN', 'IN_PROGRESS'])).count()
+            resolved_count = tickets_query.filter(Ticket.status.in_(['RESOLVED', 'CLOSED'])).count()
 
-        if department_filter and department_filter != str(dept.id):
-            continue
+            if total_count > 0:  # Only include departments with tickets
+                dept_stat = type('DeptStat', (), {
+                    'id': dept.id,
+                    'name': dept.name,
+                    'code': dept.code,
+                    'total_count': total_count,
+                    'open_count': open_count,
+                    'resolved_count': resolved_count
+                })()
+                department_stats.append(dept_stat)
+    else:
+        # Show filtered department stats
+        dept = Department.query.get(department_filter)
+        if dept:
+            tickets_query = db.session.query(Ticket).join(
+                User, Ticket.created_by_id == User.id
+            ).filter(User.department_id == dept.id)
+            
+            total_count = tickets_query.count()
+            open_count = tickets_query.filter(Ticket.status.in_(['OPEN', 'IN_PROGRESS'])).count()
+            resolved_count = tickets_query.filter(Ticket.status.in_(['RESOLVED', 'CLOSED'])).count()
 
-        total_count = tickets_query.count()
-        open_count = tickets_query.filter(Ticket.status.in_(['OPEN', 'IN_PROGRESS'])).count()
-        resolved_count = tickets_query.filter(Ticket.status.in_(['RESOLVED', 'CLOSED'])).count()
-
-        if total_count > 0:  # Only include departments with tickets
-            dept_stat = type('DeptStat', (), {
-                'id': dept.id,
-                'name': dept.name,
-                'code': dept.code,
-                'total_count': total_count,
-                'open_count': open_count,
-                'resolved_count': resolved_count
-            })()
-            department_stats.append(dept_stat)
+            if total_count > 0:
+                dept_stat = type('DeptStat', (), {
+                    'id': dept.id,
+                    'name': dept.name,
+                    'code': dept.code,
+                    'total_count': total_count,
+                    'open_count': open_count,
+                    'resolved_count': resolved_count
+                })()
+                department_stats.append(dept_stat)
 
     # Get technical staff performance data
     tech_stats = []
-    tech_users = User.query.filter_by(role='tech', is_active=True).all()
+    if not staff_filter:  # Show all tech stats when not filtering by staff
+        tech_users_query = User.query.filter_by(role='tech', is_active=True)
+        tech_users = tech_users_query.all()
+        
+        for tech in tech_users:
+            # Get tickets assigned to this tech user
+            assigned_tickets = []
+            base_query = Ticket.query.filter(Ticket.assigned_to_ids.isnot(None))
+            
+            # Apply department filter if specified
+            if department_filter:
+                base_query = base_query.join(User, Ticket.created_by_id == User.id).filter(User.department_id == department_filter)
+            
+            for ticket in base_query.all():
+                if ticket.assigned_to_ids and str(tech.id) in ticket.assigned_to_ids.split(','):
+                    assigned_tickets.append(ticket)
+                    
+            total_assigned = len(assigned_tickets)
+            active_tickets = len([t for t in assigned_tickets if t.status in ['OPEN', 'IN_PROGRESS']])
+            resolved_tickets = len([t for t in assigned_tickets if t.status in ['RESOLVED', 'CLOSED']])
 
-    for tech in tech_users:
-        if staff_filter and staff_filter != str(tech.id):
-            continue
+            if total_assigned > 0:  # Only show techs with assigned tickets
+                tech_stat = type('TechStat', (), {
+                    'id': tech.id,
+                    'name': tech.full_name,
+                    'email': tech.email,
+                    'total_assigned': total_assigned,
+                    'active_tickets': active_tickets,
+                    'resolved_tickets': resolved_tickets,
+                    'resolution_rate': (resolved_tickets / total_assigned * 100) if total_assigned > 0 else 0
+                })()
+                tech_stats.append(tech_stat)
+    else:
+        # Show filtered tech stats
+        tech = User.query.get(staff_filter)
+        if tech and tech.role == 'tech' and tech.is_active:
+            assigned_tickets = []
+            base_query = Ticket.query.filter(Ticket.assigned_to_ids.isnot(None))
+            
+            # Apply department filter if specified
+            if department_filter:
+                base_query = base_query.join(User, Ticket.created_by_id == User.id).filter(User.department_id == department_filter)
+            
+            for ticket in base_query.all():
+                if ticket.assigned_to_ids and str(tech.id) in ticket.assigned_to_ids.split(','):
+                    assigned_tickets.append(ticket)
+                    
+            total_assigned = len(assigned_tickets)
+            active_tickets = len([t for t in assigned_tickets if t.status in ['OPEN', 'IN_PROGRESS']])
+            resolved_tickets = len([t for t in assigned_tickets if t.status in ['RESOLVED', 'CLOSED']])
 
-        # Get tickets assigned to this tech user
-        assigned_tickets = []
-        for ticket in Ticket.query.filter(Ticket.assigned_to_ids.isnot(None)).all():
-            if ticket.assigned_to_ids and str(tech.id) in ticket.assigned_to_ids.split(','):
-                assigned_tickets.append(ticket)
-        total_assigned = len(assigned_tickets)
-        active_tickets = len([t for t in assigned_tickets if t.status in ['OPEN', 'IN_PROGRESS']])
-        resolved_tickets = len([t for t in assigned_tickets if t.status in ['RESOLVED', 'CLOSED']])
-
-        tech_stat = type('TechStat', (), {
-            'id': tech.id,
-            'name': tech.full_name,
-            'email': tech.email,
-            'total_assigned': total_assigned,
-            'active_tickets': active_tickets,
-            'resolved_tickets': resolved_tickets,
-            'resolution_rate': (resolved_tickets / total_assigned * 100) if total_assigned > 0 else 0
-        })()
-        tech_stats.append(tech_stat)
+            tech_stat = type('TechStat', (), {
+                'id': tech.id,
+                'name': tech.full_name,
+                'email': tech.email,
+                'total_assigned': total_assigned,
+                'active_tickets': active_tickets,
+                'resolved_tickets': resolved_tickets,
+                'resolution_rate': (resolved_tickets / total_assigned * 100) if total_assigned > 0 else 0
+            })()
+            tech_stats.append(tech_stat)
 
     return render_template('reports.html', 
                          stats=stats, 
@@ -682,7 +778,18 @@ def print_reports():
 
         # Apply staff filter (for assigned tickets)
         if staff_filter:
-            tickets_query = tickets_query.filter(Ticket.assigned_to_id == staff_filter)
+            # Filter by assigned staff using the assigned_to_ids field
+            staff_tickets = []
+            for ticket in tickets_query.filter(Ticket.assigned_to_ids.isnot(None)).all():
+                if ticket.assigned_to_ids and str(staff_filter) in ticket.assigned_to_ids.split(','):
+                    staff_tickets.append(ticket)
+            
+            # Create a filtered query with these ticket IDs
+            ticket_ids = [t.id for t in staff_tickets]
+            if ticket_ids:
+                tickets_query = tickets_query.filter(Ticket.id.in_(ticket_ids))
+            else:
+                tickets_query = tickets_query.filter(Ticket.id == -1)  # No results
 
         tickets = tickets_query.order_by(Ticket.created_at.desc()).all()
 
