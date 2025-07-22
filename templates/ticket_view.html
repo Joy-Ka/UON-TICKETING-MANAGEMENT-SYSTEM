@@ -163,6 +163,27 @@
                     {% endif %}
                     
                     <div class="d-grid gap-2">
+                        {% if current_user.role == 'tech' %}
+                        <!-- Tech staff quick status updates -->
+                        {% if ticket.status == 'OPEN' %}
+                        <form method="POST" action="{{ url_for('update_ticket_status', ticket_id=ticket.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="status" value="IN_PROGRESS">
+                            <button type="submit" class="btn btn-warning btn-sm w-100">
+                                <i class="fas fa-play me-2"></i>Mark as In Progress
+                            </button>
+                        </form>
+                        {% elif ticket.status == 'IN_PROGRESS' %}
+                        <form method="POST" action="{{ url_for('update_ticket_status', ticket_id=ticket.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="status" value="RESOLVED">
+                            <button type="submit" class="btn btn-success btn-sm w-100">
+                                <i class="fas fa-check me-2"></i>Mark as Resolved
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                        
                         {% if current_user.role == 'admin' or ticket.created_by_id == current_user.id %}
                         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal">
                             <i class="fas fa-edit me-2"></i>Update Status

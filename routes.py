@@ -355,14 +355,32 @@ def assign_ticket(ticket_id):
 @login_required
 def update_ticket_status(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
-    if current_user.role != 'admin' and ticket.created_by_id != current_user.id:
+    
+    # Check permissions
+    is_admin = current_user.role == 'admin'
+    is_creator = ticket.created_by_id == current_user.id
+    is_assigned_tech = False
+    
+    if current_user.role == 'tech' and ticket.assigned_to_ids:
+        assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
+        is_assigned_tech = current_user.id in assigned_ids
+    
+    # Allow access for admin, creator, or assigned tech
+    if not (is_admin or is_creator or is_assigned_tech):
         abort(403)
 
     form = UpdateTicketStatusForm()
 
     if form.validate_on_submit():
         old_status = ticket.status
-        ticket.status = form.status.data
+        new_status = form.status.data
+        
+        # Restrict tech staff from closing tickets - only creators and admins can close
+        if current_user.role == 'tech' and new_status == 'CLOSED':
+            flash('Only ticket creators can close tickets.', 'danger')
+            return redirect(url_for('view_ticket', ticket_id=ticket_id))
+        
+        ticket.status = new_status
 
         if form.status.data == 'RESOLVED' and old_status != 'RESOLVED':
             ticket.resolved_at = datetime.utcnow()
