@@ -91,6 +91,11 @@
                                                onclick="return confirm('Are you sure you want to {% if user.is_active %}deactivate{% else %}activate{% endif %} this user?')">
                                                 <i class="fas fa-{% if user.is_active %}pause{% else %}play{% endif %}"></i>
                                             </a>
+                                            <a href="{{ url_for('delete_user', user_id=user.id) }}" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -161,6 +166,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('create_user') }}">
+                {{ form.hidden_tag() if form }}
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -204,7 +210,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Department</label>
                             <select name="department_id" class="form-select">
-                                <option value="">Select Department</option>
+                                <option value="0">Select Department</option>
                                 {% for dept in Department.query.all() %}
                                 <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
                                 {% endfor %}

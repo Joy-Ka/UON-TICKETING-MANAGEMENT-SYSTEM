@@ -10,7 +10,7 @@
                 <h2 class="mb-3">Join ICT Support System</h2>
                 <p class="lead text-muted">Choose your registration type to get started</p>
             </div>
-            
+
             <div class="row g-4">
                 <!-- Department User Registration -->
                 <div class="col-md-6">
@@ -43,7 +43,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Technical Staff Registration -->
                 <div class="col-md-6">
                     <div class="card h-100 border-info shadow-sm">
@@ -74,7 +74,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Login Option -->
             <div class="text-center mt-5">
                 <div class="card border-0 bg-light">
@@ -86,7 +86,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Information Notice -->
             <div class="alert alert-info mt-4">
                 <h6 class="alert-heading">
@@ -101,4 +101,52 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.registration-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.registration-option:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.registration-option.selected {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+function selectOption(type) {
+    // Remove selected class from all options
+    document.querySelectorAll('.registration-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+
+    // Add selected class to clicked option
+    event.currentTarget.classList.add('selected');
+
+    // Check the radio button
+    document.getElementById(type + '_radio').checked = true;
+
+    // Enable proceed button
+    document.getElementById('proceedBtn').disabled = false;
+}
+
+function proceedToRegistration() {
+    const selectedType = document.querySelector('input[name="registration_type"]:checked').value;
+
+    if (selectedType === 'department') {
+        window.location.href = "{{ url_for('register_department') }}";
+    } else if (selectedType === 'technical') {
+        window.location.href = "{{ url_for('register_tech') }}";
+    }
+}
+</script>
 {% endblock %}

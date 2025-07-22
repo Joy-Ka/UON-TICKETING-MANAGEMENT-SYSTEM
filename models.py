@@ -59,16 +59,43 @@ class Ticket(db.Model):
     priority = db.Column(db.String(10), nullable=False)  # 'URGENT', 'HIGH', 'MEDIUM', 'LOW'
     status = db.Column(db.String(20), default='OPEN')  # 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'
     category = db.Column(db.String(50), nullable=True)
+    location = db.Column(db.String(100), nullable=True)
+    unit = db.Column(db.String(50), nullable=True)  # For SWA departments (USHR, LSHR)
     
     # Foreign keys
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    assigned_to_ids = db.Column(db.Text, nullable=True)  # Store comma-separated IDs for multiple assignments
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     resolved_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
+    due_date = db.Column(db.DateTime, nullable=True)
+    
+    @property
+    def assigned_techs(self):
+        """Get list of assigned technicians"""
+        if not self.assigned_to_ids:
+            return []
+        ids = [int(id.strip()) for id in self.assigned_to_ids.split(',') if id.strip()]
+        return User.query.filter(User.id.in_(ids)).all()
+    
+    @property
+    def is_overdue(self):
+        """Check if ticket is overdue"""
+        if not self.due_date:
+            return False
+        return datetime.utcnow() > self.due_date and self.status not in ['RESOLVED', 'CLOSED']
+    
+    @property
+    def status_display(self):
+        """Display status with overdue indicator"""
+        if self.is_overdue:
+            return 'EXPIRED'
+        elif self.due_date and datetime.utcnow() > (self.due_date - timedelta(days=1)) and self.status not in ['RESOLVED', 'CLOSED']:
+            return 'DUE'
+        return self.status
     
     # Relationships
     comments = db.relationship('TicketComment', backref='ticket', cascade='all, delete-orphan')

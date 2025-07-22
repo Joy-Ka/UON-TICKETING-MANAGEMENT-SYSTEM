@@ -175,12 +175,29 @@ def create_ticket():
         return redirect(url_for('dashboard'))
 
     form = TicketForm()
+    
+    # Set location choices based on department
+    if current_user.department:
+        dept_code = current_user.department.code
+        if dept_code == 'SWA':
+            form.unit.choices = [('', 'Select Unit'), ('USHR', 'Upper State House Road (USHR)'), ('LSHR', 'Lower State House Road (LSHR)')]
+        elif dept_code in ['UHS', 'CONFUCIUS']:
+            form.unit.choices = [('', 'N/A')]
+        else:
+            form.unit.choices = [('', 'N/A')]
+    
     if form.validate_on_submit():
+        # Set due date to 3 days from creation
+        due_date = datetime.utcnow() + timedelta(days=3)
+        
         ticket = Ticket(
             title=form.title.data,
             description=form.description.data,
             priority=form.priority.data,
             category=form.category.data,
+            unit=form.unit.data if form.unit.data else None,
+            location=form.location.data if form.location.data else None,
+            due_date=due_date,
             created_by_id=current_user.id
         )
         db.session.add(ticket)
@@ -404,38 +421,50 @@ def create_user():
     if current_user.role != 'admin':
         abort(403)
 
-    form = UserForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
         # Check if username or email already exists
-        if User.query.filter_by(username=form.username.data).first():
+        username = request.form.get('username')
+        email = request.form.get('email')
+        
+        if User.query.filter_by(username=username).first():
             flash('Username already exists', 'danger')
-            return render_template('user_management.html', form=form, edit_mode=False, 
-                                 users=User.query.all(), User=User, Department=Department)
+            return redirect(url_for('list_users'))
 
-        if User.query.filter_by(email=form.email.data).first():
+        if User.query.filter_by(email=email).first():
             flash('Email already exists', 'danger')
-            return render_template('user_management.html', form=form, edit_mode=False, 
-                                 users=User.query.all(), User=User, Department=Department)
+            return redirect(url_for('list_users'))
+
+        # Check password confirmation
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'danger')
+            return redirect(url_for('list_users'))
+
+        department_id = request.form.get('department_id')
+        if department_id == '0':
+            department_id = None
+        else:
+            department_id = int(department_id)
 
         user = User(
-            username=form.username.data,
-            email=form.email.data,
-            phone=form.phone.data,
-            first_name=form.first_name.data,
-            last_name=form.last_name.data,
-            role=form.role.data,
-            department_id=form.department_id.data if form.department_id.data > 0 else None
+            username=username,
+            email=email,
+            phone=request.form.get('phone'),
+            first_name=request.form.get('first_name'),
+            last_name=request.form.get('last_name'),
+            role=request.form.get('role'),
+            department_id=department_id
         )
-        user.set_password(form.password.data)
+        user.set_password(password)
         db.session.add(user)
         db.session.commit()
 
         flash(f'User {user.username} created successfully!', 'success')
         return redirect(url_for('list_users'))
 
-    users = User.query.all()
-    return render_template('user_management.html', form=form, users=users, edit_mode=False, 
-                         User=User, Department=Department)
+    return redirect(url_for('list_users'))
 
 @app.route('/user/<int:user_id>/toggle')
 @login_required
@@ -451,6 +480,30 @@ def toggle_user_status(user_id):
         db.session.commit()
         status = 'activated' if user.is_active else 'deactivated'
         flash(f'User {user.username} {status} successfully!', 'success')
+
+    return redirect(url_for('list_users'))
+
+@app.route('/user/<int:user_id>/delete')
+@login_required
+def delete_user(user_id):
+    if current_user.role != 'admin':
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+    if user.username == 'admin':
+        flash('Cannot delete admin user', 'danger')
+    else:
+        # Check if user has created or assigned tickets
+        created_tickets = Ticket.query.filter_by(created_by_id=user.id).count()
+        assigned_tickets = Ticket.query.filter_by(assigned_to_id=user.id).count()
+        
+        if created_tickets > 0 or assigned_tickets > 0:
+            flash(f'Cannot delete user {user.username} because they have associated tickets. Deactivate instead.', 'warning')
+        else:
+            username = user.username
+            db.session.delete(user)
+            db.session.commit()
+            flash(f'User {username} deleted successfully!', 'success')
 
     return redirect(url_for('list_users'))
 

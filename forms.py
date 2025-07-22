@@ -26,10 +26,8 @@ class TicketForm(FlaskForm):
         ('PRINTER', 'Printer'),
         ('OTHER', 'Other')
     ], validators=[DataRequired()])
-    attachments = MultipleFileField('Attachments', validators=[
-        FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'txt', 'xlsx', 'xls'], 
-                   'Only images, documents and spreadsheets are allowed!')
-    ])
+    unit = SelectField('Unit', choices=[], coerce=str, validate_choice=False)
+    location = SelectField('Location', choices=[], coerce=str, validate_choice=False)
     attachments = MultipleFileField('Attachments', validators=[
         FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'txt', 'xlsx', 'xls'], 
                    'Only images, documents and spreadsheets are allowed!')
@@ -100,6 +98,15 @@ class AssignTicketForm(FlaskForm):
         from models import User
         tech_users = User.query.filter(User.role.in_(['tech', 'admin'])).all()
         self.assigned_to_id.choices = [(u.id, u.full_name) for u in tech_users]
+
+class MultipleAssignTicketForm(FlaskForm):
+    tech_ids = SelectField('Technicians', choices=[], validate_choice=False)
+    
+    def __init__(self, *args, **kwargs):
+        super(MultipleAssignTicketForm, self).__init__(*args, **kwargs)
+        from models import User
+        tech_users = User.query.filter(User.role.in_(['tech', 'admin']), is_active=True).all()
+        self.tech_ids.choices = [(u.id, u.full_name) for u in tech_users]
 
 class UpdateTicketStatusForm(FlaskForm):
     status = SelectField('Status', choices=[
