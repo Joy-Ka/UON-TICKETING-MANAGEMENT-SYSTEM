@@ -1077,9 +1077,8 @@ def close_ticket(ticket_id):
 def delete_ticket(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
     
-    # Check permissions - admin, or ticket creator (for tech and department users)
-    if not (current_user.role == 'admin' or 
-            (current_user.role in ['tech', 'user'] and ticket.created_by_id == current_user.id)):
+    # Check permissions - admin can delete any ticket, others can only delete their own tickets
+    if not (current_user.role == 'admin' or ticket.created_by_id == current_user.id):
         abort(403)
     
     try:

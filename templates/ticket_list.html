@@ -150,9 +150,10 @@
                                                 <i class="fas fa-hand-paper"></i>
                                             </a>
                                             {% endif %}
-                                            {% if current_user.role == 'admin' or (current_user.role in ['tech', 'user'] and ticket.created_by_id == current_user.id) %}
+                                            {% if current_user.role == 'admin' or ticket.created_by_id == current_user.id %}
                                             <button onclick="deleteTicket({{ ticket.id }}, '{{ ticket.title|replace("'", "\\'") }}')" 
-                                                    class="btn btn-sm btn-outline-danger">
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    title="Delete Ticket">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                             {% endif %}
