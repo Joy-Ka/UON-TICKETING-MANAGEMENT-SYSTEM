@@ -225,34 +225,44 @@ def notify_ticket_update(ticket, message, exclude_user_id=None):
             if tech_id != exclude_user_id:
                 user = User.query.get(tech_id)
                 if user:  # Ensure the user exists
-                    create_notification(
-                        user_id=tech_id,
-                        title=f"Ticket Update: {ticket.title}",
-                        message=message,
-                        ticket_id=ticket.id,
-                        notification_type='SYSTEM'
-                    )
+                    users_to_notify.append(user)
 
-                     # Send email notification
-                    if user.email:
-                        subject = f"Ticket Update - #{ticket.id}"
-                        create_notification(
-                            user_id=user.id,
-                            title=subject,
-                            message=message,
-                            ticket_id=ticket.id,
-                            notification_type='EMAIL'
-                        )
+    # Notify all active admins except excluded user and already notified users
+    admin_users = User.query.filter_by(role='admin', is_active=True).all()
+    for admin in admin_users:
+        if admin.id != exclude_user_id and admin not in users_to_notify:
+            users_to_notify.append(admin)
 
-                    # Send SMS notification
-                    if user.phone:
-                        create_notification(
-                            user_id=user.id,
-                            title=f"Ticket Update Notification",
-                            message=message,
-                            ticket_id=ticket.id,
-                            notification_type='SMS'
-                        )
+    # Create notifications for all users to notify
+    for user in users_to_notify:
+        create_notification(
+            user_id=user.id,
+            title=f"Ticket Update: {ticket.title}",
+            message=message,
+            ticket_id=ticket.id,
+            notification_type='SYSTEM'
+        )
+
+        # Send email notification
+        if user.email:
+            subject = f"Ticket Update - #{ticket.id}"
+            create_notification(
+                user_id=user.id,
+                title=subject,
+                message=message,
+                ticket_id=ticket.id,
+                notification_type='EMAIL'
+            )
+
+        # Send SMS notification
+        if user.phone:
+            create_notification(
+                user_id=user.id,
+                title=f"Ticket Update Notification",
+                message=message,
+                ticket_id=ticket.id,
+                notification_type='SMS'
+            )
 
 def get_ticket_stats():
     """Get ticket statistics for dashboard"""

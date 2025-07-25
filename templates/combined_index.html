@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - ICT Ticketing System{% endblock %}
+
+{% block content %}
+<div class="container-fluid min-vh-100 d-flex align-items-center" style="padding-top: 0 !important;">
+    <div class="row w-100" style="margin-top: 0 !important;">
+        <!-- Left side: University of Nairobi image -->
+        <div class="col-lg-6 d-flex justify-content-center align-items-center px-0" style="max-height: 100vh;">
+            <img src="{{ url_for('static', filename='images/UON CAMPUS.webp') }}" alt="University of Nairobi Campus" class="img-fluid rounded shadow-lg" style="max-height: 100vh; width: auto; object-fit: cover;">
+        </div>
+
+        <!-- Right side: Login form -->
+        <div class="col-lg-6 d-flex align-items-center justify-content-center px-5">
+            <div class="card shadow-lg border-0 w-100" style="max-width: 400px;">
+                <div class="card-header bg-primary text-white text-center py-4" style="background: none; color: inherit;">
+                    <img src="{{ url_for('static', filename='images/UON LOGO.jpg') }}" alt="University of Nairobi Logo" style="max-height: 80px; margin-bottom: 10px;">
+                    <h3 class="mb-0">ICT Tickets</h3>
+                    <p class="mb-0 opacity-75">Sign in to your account</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('login') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.password.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.remember_me(class="form-check-input") }}
+                            {{ form.remember_me.label(class="form-check-label") }}
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center text-muted py-3">
+                    <div class="mb-2">
+                        <small>Don't have an account?</small>
+                    </div>
+                    <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user-plus me-1"></i>Register Now
+                    </a>
+                    <div class="mt-2">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Need help? Contact your IT administrator
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

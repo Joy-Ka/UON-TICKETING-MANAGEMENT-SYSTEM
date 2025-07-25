@@ -15,11 +15,14 @@ import logging
 with app.app_context():
     init_default_data()
 
+from forms import LoginForm
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    form = LoginForm()
+    return render_template('combined_index.html', form=form)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -291,12 +294,17 @@ def view_ticket(ticket_id):
     status_form = UpdateTicketStatusForm(choices=status_choices)
     status_form.status.data = ticket.status
 
+    # Add csrf_token to context for template
+    from flask_wtf.csrf import generate_csrf
+
+    # Pass generate_csrf function to template so csrf_token() works
     return render_template('ticket_view.html',
                          ticket=ticket,
                          comments=comments,
                          comment_form=comment_form,
                          assign_form=assign_form,
-                         status_form=status_form)
+                         status_form=status_form,
+                         csrf_token=generate_csrf)
 
 @app.route('/ticket/<int:ticket_id>/comment', methods=['POST'])
 @login_required
@@ -422,12 +430,24 @@ def take_ticket(ticket_id):
 
     ticket = Ticket.query.get_or_404(ticket_id)
 
-    # Check if current user is already assigned
-    is_already_assigned = False
+    # Check if current user is assigned to the ticket
+    is_assigned = False
     if ticket.assigned_to_ids:
         assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
-        is_already_assigned = current_user.id in assigned_ids
-    
+        is_assigned = current_user.id in assigned_ids
+
+    if not is_assigned:
+        flash('You cannot take this ticket because you are not assigned to it.', 'danger')
+        return redirect(url_for('view_ticket', ticket_id=ticket_id))
+
+    # Check if current user is already assigned (redundant but keep for message)
+    is_already_assigned = True  # Since user is assigned
+
+    if is_already_assigned:
+        flash('Ticket is already assigned to you', 'info')
+        return redirect(url_for('view_ticket', ticket_id=ticket_id))
+
+    # The below code is unreachable now, but keep for completeness
     if not is_already_assigned:
         if ticket.assigned_to_ids:
             assigned_ids = [int(id.strip()) for id in ticket.assigned_to_ids.split(',') if id.strip()]
@@ -445,8 +465,6 @@ def take_ticket(ticket_id):
         notify_ticket_update(ticket, message, exclude_user_id=current_user.id)
 
         flash('Ticket assigned to you successfully!', 'success')
-    else:
-        flash('Ticket is already assigned to you', 'info')
 
     return redirect(url_for('view_ticket', ticket_id=ticket_id))
 
@@ -586,15 +604,25 @@ def delete_user(user_id):
     else:
         # Check if user has created or assigned tickets
         created_tickets = Ticket.query.filter_by(created_by_id=user.id).count()
-        assigned_tickets = Ticket.query.filter_by(assigned_to_id=user.id).count()
+        from sqlalchemy import or_
+        user_id_str = str(user.id)
+        assigned_tickets = Ticket.query.filter(
+            or_(
+                Ticket.assigned_to_ids == user_id_str,
+                Ticket.assigned_to_ids.like(f'{user_id_str},%'),
+                Ticket.assigned_to_ids.like(f'%,{user_id_str},%'),
+                Ticket.assigned_to_ids.like(f'%,{user_id_str}')
+            )
+        ).count()
         
         if created_tickets > 0 or assigned_tickets > 0:
             flash(f'Cannot delete user {user.username} because they have associated tickets. Deactivate instead.', 'warning')
         else:
-            username = user.username
+            # Delete notifications related to the user to avoid integrity errors
+            Notification.query.filter_by(user_id=user.id).delete()
             db.session.delete(user)
             db.session.commit()
-            flash(f'User {username} deleted successfully!', 'success')
+            flash(f'User {user.username} deleted successfully!', 'success')
 
     return redirect(url_for('list_users'))
 
